@@ -19,8 +19,10 @@ import json #import the library module
 from search_dictionary_for_certain_keys import search_dictionary_for_certain_keys as search_dictionary  #import the library module
 import logging
 from bovadaAPI.bovadaAPI.api import BovadaApi
+from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 from bet_placer import PlaceBet
 from validate_bet import validate_bet
+from kelly import Kelly
 
 
 testing = False
@@ -59,20 +61,22 @@ def on_edge(data):
 			edgebet_id = bet['edgebet_id']
 			print "edge {}".format(edge)
 			if edge >= 1.0 and edgebet_id not in placed_bets:
-				v = validate_bet(url, bet) #scrapes the url, parses the response, and returns a new bovadamatch object.
-				print v
-				if v:
+				valid_outcome_object = validate_bet(url, bet) #scrapes the url, parses the response, and returns a new bovadamatch object.
+				if valid_outcome_object:
 					try:
 						b = BovadaApi()
 						cookies = b.auth["cookies"]
 						headers = get_bovada_headers_generic()
 						p = PlaceBet()
-						stake = kelly.get_stake(edge=edge, current_bank_roll=b.current_bank_roll)
+						stake = Kelly.get_stake(edge=edge, current_bank_roll=b.balance)
 						print "stake {}".format(stake)
-						data = p.build_bet_selection(outcomeId=v.outcome_id, priceId=outcome.price_id, stake=stake)
+						data = p.build_bet_selection(outcomeId=valid_outcome_object.outcome_id, priceId=valid_outcome_object.price_id, stake=stake)
 						print data
 					except Exception, e:
 						print e
+				else:
+					print "no valid_outcome_object"
+					pass
 
 					
 
@@ -92,9 +96,7 @@ def on_edge(data):
 			except:
 				edgebet_id = None
 
-			print "could not find url for bet {} vs {}, edgebet_id: {}".format(
-				home_team if home_team else None, away_team if away_team else None,  edgebet_id if edgebet_id else None
-				)
+			
 
 
 
@@ -107,7 +109,6 @@ def is_bovada_bet(bookmaker):
 		return False
 
 def find_url_for_bet(bet):
-	print "finding url for bet"
 	bet_sport = bet['sport'].lower()
 	home_team = bet["home_team"]
 	away_team = bet["away_team"]
@@ -131,64 +132,34 @@ def find_url_for_bet(bet):
 
 
 	else:
-		print "cant parse sport"
 		return None
 	
 	for bmatch in bmatches:
 		try:
 			if bmatch.home_team_full_name in home_team:
-				print "bovada home team {}".format(bmatch.home_team_full_name)
-				print "bovada away team {}".format(bmatch.away_team_full_name)
-				print "edgbet home team {}".format(home_team)
-				print "edgebet away_team {}".format(away_team)
 				return bmatch.game_link
 
 			if bmatch.away_team_full_name in away_team or away_team in bmatch.away_team_full_name:
-				print "bovada home team {}".format(bmatch.home_team_full_name)
-				print "bovada away team {}".format(bmatch.away_team_full_name)
-				print "edgbet home team {}".format(home_team)
-				print "edgebet away_team {}".format(away_team)
 				return bmatch.game_link
 
 			if bmatch.home_team_short_name in home_team or home_team in bmatch.home_team_short_name:
-				print "bovada home team {}".format(bmatch.home_team_full_name)
-				print "bovada away team {}".format(bmatch.away_team_full_name)
-				print "edgbet home team {}".format(home_team)
-				print "edgebet away_team {}".format(away_team)
 				return bmatch.game_link
 
 			if bmatch.away_team_short_name in away_team or away_team in bmatch.away_team_short_name:
-				print "bovada home team {}".format(bmatch.home_team_full_name)
-				print "bovada away team {}".format(bmatch.away_team_full_name)
-				print "edgbet home team {}".format(home_team)
-				print "edgebet away_team {}".format(away_team)
 				return bmatch.game_link
 
 			if bmatch.home_team_abbreviation in home_team or home_team in bmatch.home_team_abbreviation:
-				print "bovada home team {}".format(bmatch.home_team_full_name)
-				print "bovada away team {}".format(bmatch.away_team_full_name)
-				print "edgbet home team {}".format(home_team)
-				print "edgebet away_team {}".format(away_team)
 				return bmatch.game_link
 
 			if bmatch.away_team_abbreviation in away_team or away_team in bmatch.away_team_abbreviation:
-				print "bovada home team {}".format(bmatch.home_team_full_name)
-				print "bovada away team {}".format(bmatch.away_team_full_name)
-				print "edgbet home team {}".format(home_team)
-				print "edgebet away_team {}".format(away_team)
 				return bmatch.game_link
 
 
 			if home_team in bmatch.game_link or away_team in bmatch.game_link:
-				print "bovada home team {}".format(bmatch.home_team_full_name)
-				print "bovada away team {}".format(bmatch.away_team_full_name)
-				print "edgbet home team {}".format(home_team)
-				print "edgebet away_team {}".format(away_team)
 				return bmatch.game_link
 			else:
 				pass
 		except Exception, e:
-			print e
 			pass
 
 				
@@ -219,7 +190,7 @@ def return_bovada_bets(data):
 		total_value = None
 		odds_type = get_odds_type(offer['odds_type'])
 		bookmaker = search_dictionary("bookmaker", offer)['name']
-		
+		time = search_dictionary("time", offer)
 		
 		
 
@@ -229,8 +200,6 @@ def return_bovada_bets(data):
 			spread_line  = "Over"
 			total_line = "Home"
 			spread_value = float(new_edge["o2"]["o3"])
-			print "getting spread value"
-			print spread_value
 			total_value = float(new_edge["o2"]['o3'])
 			odds = float(new_edge['o2']['o1'])
 			away_team = search_dictionary("hteam", offer)['name']
@@ -238,7 +207,6 @@ def return_bovada_bets(data):
 			sport = search_dictionary("sport", offer)['name']
 			start_time = search_dictionary("start_time", offer)
 			edgebet_id = search_dictionary("id", offer)
-			#print offer
 		elif output == 2:
 			put_on = "Draw"
 			spread_line = "Under"
@@ -251,7 +219,6 @@ def return_bovada_bets(data):
 			sport = search_dictionary("sport", offer)['name']
 			start_time = search_dictionary("start_time", offer)
 			edgebet_id = search_dictionary("id", offer)
-			#print offer
 		elif output == 3:
 			away_team = search_dictionary("hteam", offer)['name']
 			home_team = search_dictionary("ateam", offer)['name']
@@ -264,15 +231,12 @@ def return_bovada_bets(data):
 
 
 		if is_bovada_bet(bookmaker):
-			print "got new bovada bet"
-			print "odds_type {}".format(odds_type)
-			print "spread_line {}".format(spread_line)
-			print "home_team {}".format(home_team)
-			print "away_team {}".format(away_team)
 			bovada_bets.append(
 			{"home_team": home_team, 
 			"away_team": away_team, 
 			"odds": odds,
+			"time": time,
+			"start_time": start_time,
 			"spread_line": spread_line,
 			"total_line": total_line,
 			"spread value": spread_value,
@@ -335,10 +299,10 @@ def run():
 	print "running"
 	global bovada_matches
 	bovada_matches = get_bovada_matches()
-	root = logging.getLogger()
-	root.setLevel(logging.INFO)
-	ch = logging.StreamHandler(sys.stdout)
-	root.addHandler(ch)
+	# root = logging.getLogger()
+	# root.setLevel(logging.INFO)
+	# ch = logging.StreamHandler(sys.stdout)
+	# root.addHandler(ch)
 	global pusher #make pusher a global variable so it's accessible throughout the script
 	appkey = "c11ef000e51c34bac2fc"
 	pusher = pusherclient.Pusher(appkey)
