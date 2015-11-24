@@ -58,23 +58,20 @@ def find_outcome(edgebet_obj, bovada_match_obj):
 
 
 	if edgebet_obj_odds_type == "Total":
-		outcomes_checked = 0
-		while len(bovada_match_obj.outcomes) >= outcomes_checked:
-			outcome_obj = bovada_match_obj.outcomes[outcomes_checked]
+		for outcome_obj in bovada_match_obj.outcomes:
 			print "making sure the bovada_match_total_value == {}".format(edgebet_obj["total_value"])
-			total_value_equal = float(edgebet_obj["total_value"]) == float(outcome_obj.total_amount)
-			if total_value_equal:
-				continue
-			else:
-				outcomes_checked +=1
-				break
+			print "bovada outcome object total value {}".format(outcome_obj.total_amount)
+			print type(edgebet_obj["total_value"])
+			print type(outcome_obj.total_amount)
+			total_value_equal = edgebet_obj["total_value"] == outcome_obj.total_amount
+				
 			print "making sure the bovada_match_odds are == edgebet_obj odds"
 			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
-			if odds_equal:
+			if odds_equal and total_value_equal:
 				return outcome_obj
 			else:
-				outcomes_checked +=1
-				break
+				pass
+				
 	
 		return None
 
@@ -83,52 +80,41 @@ def find_outcome(edgebet_obj, bovada_match_obj):
 
 	if edgebet_obj_odds_type == "Point Spread" or edgebet_obj_odds_type == "Goal Spread" or edgebet_obj_odds_type == "Point Spread --sets":
 		print "making sure the bovada_match_spread_value is == {}".format(edgebet_obj["spread_value"])
-		outcomes_checked = 0
-		while len(bovada_match_obj.outcomes) >= outcomes_checked:
+		for outcome_obj in bovada_match_obj.outcomes:
 			print "making sure the bovada_match_spread_value is == {}".format(edgebet_obj["spread_value"])
-			outcome_obj = bovada_match_obj.outcomes[outcomes_checked]
 			spread_value_equal = edgebet_obj["spread_value"] == outcome_obj.spread_amount
+			print "bovada_match_obj spread value {}".format(outcome_obj.spread_amount)
+			print type(edgebet_obj["spread_value"])
+			print type(outcome_obj.spread_amount)
 			print spread_value_equal
-			if not spread_value_equal:
-				outcomes_checked +=1
-				break
-			else:
-				continue
 			print "making sure the bovada match odds are == edgbet odds"
 			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
 			print odds_equal
-			if not odds_equal:
-				outcomes_checked +=1
-				break
+			if not odds_equal or not spread_value_equal:
+				pass
+				
 			else:
 				return outcome_obj
 
 		return None
 
 	if edgebet_obj_odds_type == "Moneyline" or edgebet_obj_odds_type.__contains__('Moneyline'):
-		outcomes_checked = 0
-		while len(bovada_match_obj.outcomes) >= outcomes_checked:
+		for outcome_obj in bovada_match_obj.outcomes:
 			print "making sure the outcome name is equal to the put_on team"
-			outcome_obj = bovada_match_obj.outcomes[outcomes_checked]
 			name_equal = (
 					edgebet_obj["put_on"] == outcome_obj.name or
 					edgebet_obj["put_on"].__contains__(outcome_obj.name) or
 					outcome_obj.name.__contains__(edgebet_obj["put_on"])
 				)
 			print name_equal
-			if name_equal:
-				continue
-			else:
-				outcomes_checked +=1
-				break
 			print "making sure the odds are equal"
 			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
 			print odds_equal
-			if odds_equal:
+			if odds_equal and name_equal:
 				return outcome_obj
 			else:
-				outcomes_checked +=1
-				break
+				pass
+				
 		return None
 
 

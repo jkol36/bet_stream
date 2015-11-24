@@ -62,14 +62,17 @@ def on_edge(data):
 				v = validate_bet(url, bet) #scrapes the url, parses the response, and returns a new bovadamatch object.
 				print v
 				if v:
-					b = BovadaApi()
-					cookies = b.auth["cookies"]
-					headers = get_bovada_headers_generic()
-					p = PlaceBet()
-					stake = kelly.get_stake(edge=edge, current_bank_roll=b.current_bank_roll)
-					print "stake {}".format(stake)
-					data = p.build_bet_selection(outcomeId=v.outcome_id, prideId=outcome.price_id, stake=stake)
-					print data
+					try:
+						b = BovadaApi()
+						cookies = b.auth["cookies"]
+						headers = get_bovada_headers_generic()
+						p = PlaceBet()
+						stake = kelly.get_stake(edge=edge, current_bank_roll=b.current_bank_roll)
+						print "stake {}".format(stake)
+						data = p.build_bet_selection(outcomeId=v.outcome_id, priceId=outcome.price_id, stake=stake)
+						print data
+					except Exception, e:
+						print e
 
 					
 
@@ -225,8 +228,10 @@ def return_bovada_bets(data):
 			put_on = "Home"
 			spread_line  = "Over"
 			total_line = "Home"
-			spread_value = search_dictionary("o3", offer)
-			total_value = search_dictionary("o3", offer)
+			spread_value = float(new_edge["o2"]["o3"])
+			print "getting spread value"
+			print spread_value
+			total_value = float(new_edge["o2"]['o3'])
 			odds = float(new_edge['o2']['o1'])
 			away_team = search_dictionary("hteam", offer)['name']
 			home_team = search_dictionary("ateam", offer)['name']
@@ -238,8 +243,8 @@ def return_bovada_bets(data):
 			put_on = "Draw"
 			spread_line = "Under"
 			total_line = "Away"
-			spread_value = search_dictionary("o3", offer)
-			total_value = search_dictionary("o3", offer)
+			spread_value = float(new_edge["o2"]["o3"])
+			total_value = float(new_edge["o2"]["o3"])
 			odds = float(new_edge['o2']['o2'])
 			away_team = search_dictionary("hteam", offer)['name']
 			home_team = search_dictionary("ateam", offer)['name']
