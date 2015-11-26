@@ -1,5 +1,6 @@
 import requests
 import json
+from bovadaAPI.bovadaAPI.api import BovadaApi
 from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 from bovadaAPI.bovadaAPI.was_successful import was_successful
 from search_dictionary_for_certain_keys import search_dictionary_for_certain_keys as search_dict
@@ -40,14 +41,13 @@ class PlaceBet(object):
 		if cookies and headers and data:
 			response = requests.post('https://sports.bovada.lv/services/sports/bet/betslip', headers=headers, cookies=cookies, data=data)
 			if was_successful(response):
-				key = search_dict("key", response.json())
-				response_2 = requests.get("https://sports.bovada.lv/services/sports/bet/betslip/{}".format(key), headers=headers, cookies=cookies)
-				if was_successful(response_2):
-					return True
-				else:
-					return False
+				return True
+			else:
+				print response.reason
+				print response.status_code
 		else:
 			raise Exception("can't place bet without cookies or headers")
+
 
 
 
