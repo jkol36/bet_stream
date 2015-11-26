@@ -22,12 +22,13 @@ from bovadaAPI.bovadaAPI.api import BovadaApi
 from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 from bet_placer import PlaceBet
 from validate_bet import validate_bet
+from mymodels import Match
+from connect_to_db import get_session
 from kelly import Kelly
 
 
-testing = False
 
-placed_bets = []
+
 
 def get_bovada_matches():
 	print "hang tight, fetching the latest matches from bovada. This can take a while."
@@ -50,6 +51,7 @@ def get_bovada_matches():
 		"baseball_matches": baseball_matches
 	}
 def on_edge(data):
+	print "number of placed bets {}".format(len(placed_bets))
 	bovada_bets = return_bovada_bets(data=data) #parse the data dictonary
 	#if bovada_bets: # if any bovada bets are found (checking to see of the bookmaker key's value == "bovada")
 	for bet in bovada_bets: # for each bovada bet
@@ -58,9 +60,15 @@ def on_edge(data):
 		url = find_url_for_bet(bet)
 		if url:
 			edge = bet['edge']
-			edgebet_id = bet['edgebet_id']
+			match_id = bet['match_id']
+			odds = bet["odds"]
+			edgebet_id = bet["edgebet_id"]
+			bookmaker_id = bet["bookmaker_id"]
 			print "edge {}".format(edge)
-			if edge >= 1.0 and edgebet_id not in placed_bets:
+			print "odds {}".format(odds)
+			if (
+				edge >= 1.0 and 
+				match_id not in [x.id for x in placed_bets]):
 				valid_outcome_object = validate_bet(url, bet) #scrapes the url, parses the response, and returns a new bovadamatch object.
 				if valid_outcome_object:
 					try:
@@ -68,10 +76,16 @@ def on_edge(data):
 						cookies = b.auth["cookies"]
 						headers = get_bovada_headers_generic()
 						p = PlaceBet()
-						stake = Kelly.get_stake(edge=edge, current_bank_roll=b.balance)
+						stake = Kelly.get_stake(odds=odds, edge=edge, current_bank_roll=b.balance)
+						stake = stake * 100
 						print "stake {}".format(stake)
+						print valid_outcome_object.outcome_id
 						data = p.build_bet_selection(outcomeId=valid_outcome_object.outcome_id, priceId=valid_outcome_object.price_id, stake=stake)
-						print data
+						if stake >= 1:
+							just_do_it = p.place(data=json.dumps(data), cookies=cookies, headers=headers)
+							print just_do_it
+							if just_do_it:
+								placed_bets.append(Match(id=match_id, edgebet_id=edgebet_id, bookmaker_id=bookmaker_id, stake=stake))
 					except Exception, e:
 						print e
 				else:
@@ -190,8 +204,9 @@ def return_bovada_bets(data):
 		total_value = None
 		odds_type = get_odds_type(offer['odds_type'])
 		bookmaker = search_dictionary("bookmaker", offer)['name']
+		bookmaker_id = int(search_dictionary("bookmaker", offer)["id"])
 		time = search_dictionary("time", offer)
-		
+		match_id = search_dictionary("match", offer)["id"]
 		
 
 
@@ -235,6 +250,8 @@ def return_bovada_bets(data):
 			{"home_team": home_team, 
 			"away_team": away_team, 
 			"odds": odds,
+			"bookmaker_id": bookmaker_id,
+			"match_id": match_id,
 			"time": time,
 			"start_time": start_time,
 			"spread_line": spread_line,
@@ -251,6 +268,8 @@ def return_bovada_bets(data):
 			bovada_bets.append({"home_team": home_team, 
 			"away_team": away_team, 
 			"odds": odds,
+			"bookmaker_id":bookmaker_id,
+			"match_id": match_id,
 			"spread_line": spread_line,
 			"total_line": total_line,
 			"total_value": total_value,
@@ -298,18 +317,29 @@ def connection_handler(data):
 def run():
 	print "running"
 	global bovada_matches
+	log = logging.getLogger()
+	log.addHandler(logging.FileHandler("betstream.log"))
 	bovada_matches = get_bovada_matches()
-	# root = logging.getLogger()
-	# root.setLevel(logging.INFO)
-	# ch = logging.StreamHandler(sys.stdout)
-	# root.addHandler(ch)
 	global pusher #make pusher a global variable so it's accessible throughout the script
+	global placed_bets
+	global testing
+	testing = False
+	placed_bets = []
 	appkey = "c11ef000e51c34bac2fc"
 	pusher = pusherclient.Pusher(appkey)
 	pusher.connection.bind('pusher:connection_established', connection_handler)
 	pusher.connect()
+	checker = time.time()
+	session = get_session()
 	while True:
+		if time.time() - checker > 2000 and len(placed_bets) > 0:
+			print "adding all placed bets to db"
+			session.add_all(placed_bets)
+			session.commit()
+			checker = time.time()
+
 		time.sleep(1)
+		log.log(logging.INFO, sys.stdout)
 
 		
 
