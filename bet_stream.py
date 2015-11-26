@@ -77,7 +77,6 @@ def on_edge(data):
 						headers = get_bovada_headers_generic()
 						p = PlaceBet()
 						stake = Kelly.get_stake(odds=odds, edge=edge, current_bank_roll=b.balance)
-						stake = stake * 100
 						print "stake {}".format(stake)
 						print valid_outcome_object.outcome_id
 						data = p.build_bet_selection(outcomeId=valid_outcome_object.outcome_id, priceId=valid_outcome_object.price_id, stake=stake)
@@ -332,12 +331,6 @@ def run():
 	checker = time.time()
 	session = get_session()
 	while True:
-		if time.time() - checker > 2000 and len(placed_bets) > 0:
-			print "adding all placed bets to db"
-			session.add_all(placed_bets)
-			session.commit()
-			checker = time.time()
-
 		time.sleep(1)
 		log.log(logging.INFO, sys.stdout)
 
