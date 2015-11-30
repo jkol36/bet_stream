@@ -212,13 +212,16 @@ def return_bovada_bets(data):
 		total_line = None
 		total_value = None
 		odds_type = get_odds_type(offer['odds_type'])
-		bookmaker = search_dictionary("bookmaker", offer)['name']
-		bookmaker_id = int(search_dictionary("bookmaker", offer)["id"])
+		bookmaker = new_edge["o2"]["offer"]["bookmaker"]["name"]
+		bookmaker_id = int(new_edge["o2"]["offer"]["bookmaker"]["id"])
 		time = search_dictionary("time", offer)
 		match_id = search_dictionary("match", offer)["id"]
+		sport = search_dictionary("sport", offer)['name']
+		start_time = search_dictionary("start_time", offer)
+		edgebet_id = search_dictionary("id", offer)
+		home_team = search_dictionary("hteam", offer)['name']
+		away_team = search_dictionary("ateam", offer)['name']
 		
-
-
 		if output == 1:
 			put_on = "Home"
 			spread_line  = "Over"
@@ -226,11 +229,10 @@ def return_bovada_bets(data):
 			spread_value = float(new_edge["o2"]["o3"])
 			total_value = float(new_edge["o2"]['o3'])
 			odds = float(new_edge['o2']['o1'])
-			away_team = search_dictionary("hteam", offer)['name']
-			home_team = search_dictionary("ateam", offer)['name']
-			sport = search_dictionary("sport", offer)['name']
-			start_time = search_dictionary("start_time", offer)
-			edgebet_id = search_dictionary("id", offer)
+			
+			
+			
+			
 		elif output == 2:
 			put_on = "Draw"
 			spread_line = "Under"
@@ -238,20 +240,12 @@ def return_bovada_bets(data):
 			spread_value = float(new_edge["o2"]["o3"])
 			total_value = float(new_edge["o2"]["o3"])
 			odds = float(new_edge['o2']['o2'])
-			away_team = search_dictionary("hteam", offer)['name']
-			home_team = search_dictionary("ateam", offer)['name']
-			sport = search_dictionary("sport", offer)['name']
-			start_time = search_dictionary("start_time", offer)
-			edgebet_id = search_dictionary("id", offer)
+			
+
 		elif output == 3:
-			away_team = search_dictionary("hteam", offer)['name']
-			home_team = search_dictionary("ateam", offer)['name']
 			put_on = "Away"
 			odds = float(new_edge['o2']['o3'])
-			sport = search_dictionary("sport", offer)['name']
-			start_time = search_dictionary("start_time", offer)
-			edgebet_id = search_dictionary("id", offer)
-
+			
 
 
 		if is_bovada_bet(bookmaker):
