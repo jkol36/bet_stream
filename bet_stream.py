@@ -21,9 +21,8 @@ import logging
 from bovadaAPI.bovadaAPI.api import BovadaApi
 from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 from bet_placer import PlaceBet
-from validate_bet import validate_bet, find_outcome
 from mymodels import Match
-from connect_to_db import get_session
+from validate_bet import validate_bet, find_outcome
 from kelly import Kelly
 
 
