@@ -117,5 +117,9 @@ def validate_bet(url, edgebet_obj):
 		if bmatch:
 			outcome = find_outcome(edgebet_obj, bmatch)
 			return outcome
+	else:
+		print "validating bet failed"
+		print response.reason
+		print response.status_code
 
 			

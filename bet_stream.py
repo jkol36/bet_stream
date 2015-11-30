@@ -21,7 +21,7 @@ import logging
 from bovadaAPI.bovadaAPI.api import BovadaApi
 from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 from bet_placer import PlaceBet
-from validate_bet import validate_bet
+from validate_bet import validate_bet, find_outcome
 from mymodels import Match
 from connect_to_db import get_session
 from kelly import Kelly
@@ -51,11 +51,9 @@ def get_bovada_matches():
 		"baseball_matches": baseball_matches
 	}
 def on_edge(data):
-	print "number of placed bets {}".format(len(placed_bets))
 	bovada_bets = return_bovada_bets(data=data) #parse the data dictonary
 	#if bovada_bets: # if any bovada bets are found (checking to see of the bookmaker key's value == "bovada")
 	for bet in bovada_bets: # for each bovada bet
-		print "got new bovada bet"
 		#print "bet odds type: {}".format(bet["odds_type"])
 		url = find_url_for_bet(bet)
 		if url:
@@ -64,8 +62,6 @@ def on_edge(data):
 			odds = bet["odds"]
 			edgebet_id = bet["edgebet_id"]
 			bookmaker_id = bet["bookmaker_id"]
-			print "edge {}".format(edge)
-			print "odds {}".format(odds)
 			if (
 				edge >= 1.0 and 
 				match_id not in [x.id for x in placed_bets]):
@@ -77,18 +73,14 @@ def on_edge(data):
 						headers = get_bovada_headers_generic()
 						p = PlaceBet()
 						stake = Kelly.get_stake(odds=odds, edge=edge, current_bank_roll=b.balance)
-						print "stake {}".format(stake)
-						print valid_outcome_object.outcome_id
 						data = p.build_bet_selection(outcomeId=valid_outcome_object.outcome_id, priceId=valid_outcome_object.price_id, stake=stake)
 						if stake >= 1:
 							just_do_it = p.place(data=json.dumps(data), cookies=cookies, headers=headers)
-							print just_do_it
 							if just_do_it:
 								placed_bets.append(Match(id=match_id, edgebet_id=edgebet_id, bookmaker_id=bookmaker_id, stake=stake))
 					except Exception, e:
 						print e
 				else:
-					print "no valid_outcome_object"
 					pass
 
 					
@@ -96,18 +88,30 @@ def on_edge(data):
 			else:
 				pass
 		else:
-			try:
-				home_team = bet['home_team']
-			except:
-				home_team = None
-			try:
-				away_team = bet['away_team']
-			except:
-				away_team = None
-			try:
-				edgebet_id = bet["edgebet_id"]
-			except:
-				edgebet_id = None
+			for match in bovada_matches:
+				valid_outcome_object = find_outcome(bet, match)
+				if valid_outcome_object:
+					try:
+						b = BovadaApi()
+						cookies = b.auth["cookies"]
+						headers = get_bovada_headers_generic()
+						p = PlaceBet()
+						stake = Kelly.get_stake(odds=odds, edge=edge, current_bank_roll=b.balance)
+						data = p.build_bet_selection(outcomeId=valid_outcome_object.outcome_id, priceId=valid_outcome_object.price_id, stake=stake)
+						if stake >= 1:
+							just_do_it = p.place(data=json.dumps(data), cookies=cookies, headers=headers)
+							if just_do_it:
+								placed_bets.append(Match(id=match_id, edgebet_id=edgebet_id, bookmaker_id=bookmaker_id, stake=stake))
+								break
+					except Exception, e:
+						print e
+				else:
+					pass
+			print "could not find the correct outcome id. On to the next bet."
+
+
+
+			
 
 			
 
@@ -148,32 +152,38 @@ def find_url_for_bet(bet):
 		return None
 	
 	for bmatch in bmatches:
+
+
 		try:
 			if bmatch.home_team_full_name in home_team:
 				return bmatch.game_link
 
-			if bmatch.away_team_full_name in away_team or away_team in bmatch.away_team_full_name:
+			elif bmatch.away_team_full_name in away_team or away_team in bmatch.away_team_full_name:
 				return bmatch.game_link
 
-			if bmatch.home_team_short_name in home_team or home_team in bmatch.home_team_short_name:
+			elif bmatch.home_team_short_name in home_team or home_team in bmatch.home_team_short_name:
 				return bmatch.game_link
 
-			if bmatch.away_team_short_name in away_team or away_team in bmatch.away_team_short_name:
+			elif bmatch.away_team_short_name in away_team or away_team in bmatch.away_team_short_name:
 				return bmatch.game_link
 
-			if bmatch.home_team_abbreviation in home_team or home_team in bmatch.home_team_abbreviation:
+			elif bmatch.home_team_abbreviation in home_team or home_team in bmatch.home_team_abbreviation:
 				return bmatch.game_link
 
-			if bmatch.away_team_abbreviation in away_team or away_team in bmatch.away_team_abbreviation:
+			elif bmatch.away_team_abbreviation in away_team or away_team in bmatch.away_team_abbreviation:
 				return bmatch.game_link
 
 
-			if home_team in bmatch.game_link or away_team in bmatch.game_link:
+			elif home_team in bmatch.game_link or away_team in bmatch.game_link:
 				return bmatch.game_link
 			else:
 				pass
+
+				
 		except Exception, e:
-			pass
+			print e
+	return None
+
 
 				
 
@@ -329,9 +339,10 @@ def run():
 	pusher.connection.bind('pusher:connection_established', connection_handler)
 	pusher.connect()
 	checker = time.time()
-	session = get_session()
 	while True:
-		time.sleep(1)
+		if checker - time.time() > 2000:
+			print "refetching bovada matches"
+			bovada_matches = get_bovada_matches()
 		log.log(logging.INFO, sys.stdout)
 
 		
