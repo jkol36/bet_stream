@@ -22,29 +22,17 @@ def find_outcome(edgebet_obj, bovada_match_obj):
 	edgebet_obj_odds_type = edgebet_obj["odds_type"]
 	
 	home_teams_equal = (
-			edgebet_obj["home_team"].__contains__(bovada_match_obj.home_team_full_name) or 
-			edgebet_obj["home_team"] == bovada_match_obj.home_team_full_name or 
-			bovada_match_obj.home_team_full_name.__contains__(edgebet_obj["home_team"]) or
-			bovada_match_obj.home_team_short_name == edgebet_obj["home_team"] or
-			bovada_match_obj.home_team_short_name.__contains__(edgebet_obj["home_team"]) or
-			edgebet_obj["home_team"].__contains__(bovada_match_obj.home_team_short_name) or
-			bovada_match_obj.home_team_abbreviation == edgebet_obj["home_team"] or
-			bovada_match_obj.home_team_abbreviation.__contains__(edgebet_obj["home_team"]) or
-			edgebet_obj["home_team"].__contains__(bovada_match_obj.home_team_abbreviation)
+			edgebet_obj["home_team"] == bovada_match_obj.home_team_full_name or
+			edgebet_obj["home_team"] in bovada_match_obj.home_team_full_name
 		)
 	
 	away_teams_equal = (
-		edgebet_obj["away_team"].__contains__(bovada_match_obj.away_team_full_name) or 
+		edgebet_obj["away_team"] in bovada_match_obj.away_team_full_name or 
 		edgebet_obj["away_team"] == bovada_match_obj.away_team_full_name 
-		or bovada_match_obj.away_team_full_name.__contains__(edgebet_obj["away_team"]) or
-		bovada_match_obj.away_team_short_name == edgebet_obj["away_team"] or
-		bovada_match_obj.away_team_short_name.__contains__(edgebet_obj["away_team"]) or
-		edgebet_obj["away_team"].__contains__(bovada_match_obj.away_team_short_name) or
-		bovada_match_obj.away_team_abbreviation == edgebet_obj["away_team"] or
-		bovada_match_obj.away_team_abbreviation.__contains__(edgebet_obj["away_team"]) or
-		edgebet_obj["away_team"].__contains__(bovada_match_obj.away_team_abbreviation))
+		)
+		
 
-	if not home_teams_equal and not away_teams_equal:
+	if home_teams_equal == False and away_teams_equal == False:
 		return None
 	
 
