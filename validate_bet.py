@@ -23,12 +23,12 @@ def find_outcome(edgebet_obj, bovada_match_obj):
 	
 	home_teams_equal = (
 			edgebet_obj["home_team"] == bovada_match_obj.home_team_full_name or
-			edgebet_obj["home_team"] in bovada_match_obj.home_team_full_name
+			edgebet_obj["home_team"].lower() in bovada_match_obj.home_team_full_name.lower()
 		)
 	
 	away_teams_equal = (
-		edgebet_obj["away_team"] in bovada_match_obj.away_team_full_name or 
-		edgebet_obj["away_team"] == bovada_match_obj.away_team_full_name 
+		edgebet_obj["away_team"].lower() in bovada_match_obj.away_team_full_name.lower() or 
+		edgebet_obj["away_team"].lower() == bovada_match_obj.away_team_full_name.lower() 
 		)
 		
 
@@ -105,6 +105,7 @@ def validate_bet(url, edgebet_obj):
 		if bmatch:
 			outcome = find_outcome(edgebet_obj, bmatch)
 			return outcome
+
 	else:
 		print "validating bet failed"
 		print response.reason
