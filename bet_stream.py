@@ -337,7 +337,7 @@ def run():
 			print "refetching bovada matches"
 			bovada_matches = get_bovada_matches()
 		log.log(logging.INFO, sys.stdout)
+		time.sleep(0.1)
 
-		
 
 run()
