@@ -41,8 +41,9 @@ def find_outcome(edgebet_obj, bovada_match_obj):
 	if edgebet_obj_odds_type == "Total":
 		for outcome_obj in bovada_match_obj.outcomes:
 			total_value_equal = edgebet_obj["total_value"] == outcome_obj.total_amount
+			outcome_types_equal = edgebet_obj["total_line"] == outcome_obj.outcome_type
 			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
-			if odds_equal and total_value_equal:
+			if odds_equal and total_value_equal and outcome_types_equal:
 				return outcome_obj
 		return None
 
@@ -56,20 +57,23 @@ def find_outcome(edgebet_obj, bovada_match_obj):
 		):
 		for outcome_obj in bovada_match_obj.outcomes:
 			spread_value_equal = edgebet_obj["spread_value"] == outcome_obj.spread_amount
+			outcome_types_equal = edgebet_obj["spread_line"] == outcome_obj.outcome_type
 			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
-			if odds_equal and spread_value_equal:
+			if odds_equal and spread_value_equal and outcome_types_equal:
 				return outcome_obj
+			else:
+				print "something is not equal"
+				
 		return None
 
-	elif edgebet_obj_odds_type == "Moneyline" or edgebet_obj_odds_type.__contains__('Moneyline'):
+	elif edgebet_obj_odds_type == "Moneyline" or edgebet_obj_odds_type == "3-Way Moneyline":
+		print "moneyline"
 		for outcome_obj in bovada_match_obj.outcomes:
-			name_equal = (
-					edgebet_obj["put_on"] == outcome_obj.name or
-					edgebet_obj["put_on"].__contains__(outcome_obj.name) or
-					outcome_obj.name.__contains__(edgebet_obj["put_on"])
-				)
+			outcome_types_equal = outcome_obj.outcome_type == edgebet_obj["moneyline"]
 			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
-			if odds_equal and name_equal:
+			print "outcome types equal", outcome_types_equal
+			print "odds_equal", odds_equal
+			if odds_equal and outcome_types_equal:
 				return outcome_obj
 		return None
 
@@ -80,10 +84,6 @@ def find_outcome(edgebet_obj, bovada_match_obj):
 
 
 def validate_bet(url, edgebet_obj):
-	try:
-		edgebet_put_on = edgebet_obj["put_on"]
-	except KeyError, e:
-		return None
 
 	try:
 		edgebet_odds_type = edgebet_obj['odds_type']

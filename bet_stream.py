@@ -59,11 +59,12 @@ def on_edge(data):
 			edge = bet['edge']
 			match_id = bet['match_id']
 			odds = bet["odds"]
+			odds_type = bet["odds_type"]
 			edgebet_id = bet["edgebet_id"]
 			bookmaker_id = bet["bookmaker_id"]
 			if (
 				edge >= 1.0 and 
-				match_id not in [x.id for x in placed_bets]):
+				edgebet_id not in [x.edgebet_id for x in placed_bets]):
 				valid_outcome_object = validate_bet(url, bet) #scrapes the url, parses the response, and returns a new bovadamatch object.
 				if valid_outcome_object:
 					try:
@@ -160,18 +161,6 @@ def find_url_for_bet(bet):
 			elif bmatch.away_team_full_name in away_team or away_team in bmatch.away_team_full_name:
 				return bmatch.game_link
 
-			elif bmatch.home_team_short_name in home_team or home_team in bmatch.home_team_short_name:
-				return bmatch.game_link
-
-			elif bmatch.away_team_short_name in away_team or away_team in bmatch.away_team_short_name:
-				return bmatch.game_link
-
-			elif bmatch.home_team_abbreviation in home_team or home_team in bmatch.home_team_abbreviation:
-				return bmatch.game_link
-
-			elif bmatch.away_team_abbreviation in away_team or away_team in bmatch.away_team_abbreviation:
-				return bmatch.game_link
-
 
 			elif home_team in bmatch.game_link or away_team in bmatch.game_link:
 				return bmatch.game_link
@@ -221,10 +210,11 @@ def return_bovada_bets(data):
 		home_team = search_dictionary("hteam", offer)['name']
 		away_team = search_dictionary("ateam", offer)['name']
 		
+		#new_edge.output not to be confused with something else
 		if output == 1:
-			put_on = "Home"
-			spread_line  = "Over"
-			total_line = "Home"
+			moneyline = "H" # stands for Home
+			spread_line  = "H" # stands for Home
+			total_line = "O" #stands for over
 			spread_value = float(new_edge["o2"]["o3"])
 			total_value = float(new_edge["o2"]['o3'])
 			odds = float(new_edge['o2']['o1'])
@@ -233,16 +223,16 @@ def return_bovada_bets(data):
 			
 			
 		elif output == 2:
-			put_on = "Draw"
-			spread_line = "Under"
-			total_line = "Away"
+			moneyline = "D"  #stands for draw
+			spread_line = "A" #stands for away
+			total_line = "U" #stands for under
 			spread_value = float(new_edge["o2"]["o3"])
 			total_value = float(new_edge["o2"]["o3"])
 			odds = float(new_edge['o2']['o2'])
 			
 
 		elif output == 3:
-			put_on = "Away"
+			moneyline = "A"
 			odds = float(new_edge['o2']['o3'])
 			
 
@@ -257,13 +247,13 @@ def return_bovada_bets(data):
 			"time": time,
 			"start_time": start_time,
 			"spread_line": spread_line,
+			"moneyline": moneyline,
 			"total_line": total_line,
-			"spread value": spread_value,
+			"spread_value": spread_value,
 			"total_value": total_value,
 			"spread_value": spread_value,
 			"odds_type": odds_type,
 			'edge': edge,
-			'put_on': put_on,
 			'sport': sport,
 			"edgebet_id": edgebet_id})
 		elif testing == True:
@@ -278,7 +268,6 @@ def return_bovada_bets(data):
 			"spread_value": spread_value,
 			"odds_type": get_odds_type(odds_type),
 			'edge': edge,
-			'put_on': put_on,
 			'sport': sport,
 			"edgebet_id": edgebet_id})
 	return bovada_bets
