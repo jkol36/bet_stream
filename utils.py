@@ -1,10 +1,12 @@
-#Script Name 	:search_dictionary_for_certain_keys.py
-#Author 		: Jon Kolman
-
-#Created 		:October 23th, 2015
 
 
-#description recursively searches the keys of a supplied dictionary for a specific key and returns the first value where the keys match
+def get_val(obj, key):
+	try:
+		value = obj[key]
+	except KeyError, e:
+		return None
+	else:
+		return value
 
 
 
@@ -24,7 +26,3 @@ def search_dictionary_for_certain_keys(key, dictionary):
 						item = search_dictionary_for_certain_keys(key, i)
 						if item is not None:
 							return item
-
-
-
-

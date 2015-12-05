@@ -16,8 +16,9 @@ import sys
 import pusherclient #import the library module
 import time #import the library module
 import json #import the library module
-from search_dictionary_for_certain_keys import search_dictionary_for_certain_keys as search_dictionary  #import the library module
+from utils import search_dictionary_for_certain_keys as search_dictionary, get_val  #import the library module
 import logging
+from get_bovada_matches import get_bovada_matches
 from bovadaAPI.bovadaAPI.api import BovadaApi
 from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 from bet_placer import PlaceBet
@@ -29,161 +30,81 @@ from kelly import Kelly
 
 
 
-def get_bovada_matches():
-	print "hang tight, fetching the latest matches from bovada. This can take a while."
-	b = BovadaApi()
-	b.auth
-	soccer_matches = b.soccer_matches
-	basketball_matches = b.basketball_matches
-	tennis_matches = b.tennis_matches
-	rugby_matches = b.rugby_matches
-	football_matches = b.football_matches
-	baseball_matches = b.baseball_matches
 
 
-	return {
-		"soccer_matches": soccer_matches,
-		"basketball_matches": basketball_matches,
-		"football_matches": football_matches,
-		"rugby_matches": rugby_matches,
-		"tennis_matches": tennis_matches,
-		"baseball_matches": baseball_matches
-	}
+
 def on_edge(data):
-	bovada_bets = return_bovada_bets(data=data) #parse the data dictonary
-	#if bovada_bets: # if any bovada bets are found (checking to see of the bookmaker key's value == "bovada")
-	for bet in bovada_bets: # for each bovada bet
-		#print "bet odds type: {}".format(bet["odds_type"])
-		url = find_url_for_bet(bet)
-		if url:
-			edge = bet['edge']
-			match_id = bet['match_id']
-			odds = bet["odds"]
-			odds_type = bet["odds_type"]
-			edgebet_id = bet["edgebet_id"]
-			bookmaker_id = bet["bookmaker_id"]
-			if (
-				edge >= 1.0 and 
-				edgebet_id not in [x.edgebet_id for x in placed_bets]):
-				valid_outcome_object = validate_bet(url, bet) #scrapes the url, parses the response, and returns a new bovadamatch object.
-				if valid_outcome_object:
-					try:
-						b = BovadaApi()
-						cookies = b.auth["cookies"]
-						headers = get_bovada_headers_generic()
-						p = PlaceBet()
-						stake = Kelly.get_stake(odds=odds, edge=edge, current_bank_roll=b.balance)
-						data = p.build_bet_selection(outcomeId=valid_outcome_object.outcome_id, priceId=valid_outcome_object.price_id, stake=stake)
-						if stake >= 1:
-							just_do_it = p.place(data=json.dumps(data), cookies=cookies, headers=headers)
-							if just_do_it:
-								placed_bets.append(Match(id=match_id, edgebet_id=edgebet_id, bookmaker_id=bookmaker_id, stake=stake))
-					except Exception, e:
-						print e
-				else:
-					pass
+	bovada_bets = return_bovada_bets(data=data) 
 
-					
-
-			else:
-				pass
-		else:
-			for match in bovada_matches:
-				valid_outcome_object = find_outcome(bet, match)
-				if valid_outcome_object:
-					try:
-						b = BovadaApi()
-						cookies = b.auth["cookies"]
-						headers = get_bovada_headers_generic()
-						p = PlaceBet()
-						stake = Kelly.get_stake(odds=odds, edge=edge, current_bank_roll=b.balance)
-						data = p.build_bet_selection(outcomeId=valid_outcome_object.outcome_id, priceId=valid_outcome_object.price_id, stake=stake)
-						if stake >= 1:
-							just_do_it = p.place(data=json.dumps(data), cookies=cookies, headers=headers)
-							if just_do_it:
-								placed_bets.append(Match(id=match_id, edgebet_id=edgebet_id, bookmaker_id=bookmaker_id, stake=stake))
-								break
-					except Exception, e:
-						print e
-				else:
-					pass
-			print "could not find the correct outcome id. On to the next bet."
-
-
-
-			
-
-			
-
-
-
-
-
-def is_bovada_bet(bookmaker):
-	if bookmaker.lower()== "bovada":
-		return True
-	else:
-		return False
-
-def find_url_for_bet(bet):
-	bet_sport = bet['sport'].lower()
-	home_team = bet["home_team"]
-	away_team = bet["away_team"]
-	if bet_sport.__contains__("soccer"):
-		bmatches = bovada_matches['soccer_matches']
-
-	elif bet_sport.__contains__("baseball"):
-		bmatches = bovada_matches["baseball_matches"]
-
-	elif bet_sport.__contains__("football"):
-		bmatches= bovada_matches['football_matches']
-
-	elif bet_sport.__contains__("basketball"):
-		bmatches = bovada_matches['basketball_matches']
-
-	elif bet_sport.__contains__("rugby"):
-		bmatches = bovada_matches['rugby_matches']
-
-	elif bet_sport.__contains__("tennis"):
-		bmatches = bovada_matches['tennis_matches']
-
-
-	else:
-		return None
-	
-	for bmatch in bmatches:
-
-
-		try:
-			if bmatch.home_team_full_name in home_team:
-				return bmatch.game_link
-
-			elif bmatch.away_team_full_name in away_team or away_team in bmatch.away_team_full_name:
-				return bmatch.game_link
-
-
-			elif home_team in bmatch.game_link or away_team in bmatch.game_link:
-				return bmatch.game_link
-			else:
-				pass
-
-				
-		except Exception, e:
-			print e
-	return None
-
-
-				
-
+	for edgebet in bovada_bets: # for each bovada bet
+		edge = get_val(edgebet, "edge")
+		match_id = get_val(edgebet, "match_id")
+		bookmaker_id = get_val(edgebet, "bookmaker_id")
+		sport = get_val(edgebet, "sport")
+		home_team = get_val(edgebet, "home_team")
+		away_team = get_val(edgebet, "away_team")
+		odds = get_val(edgebet, "odds")
+		odds_type = get_val(edgebet, "odds_type")
+		total_value = get_val(edgebet, "total_value")
+		total_line = get_val(edgebet, "total_line")
+		spread_value = get_val(edgebet, "spread_value")
+		spread_line = get_val(edgebet, "spread_line")
+		moneyline = get_val(edgebet, "moneyline")
+		edgebet_id = get_val(edgebet, "edgebet_id")
 		
+		
+		if(
+			edge and
+			match_id and
+			edgebet_id and
+			bookmaker_id and
+			sport and
+			home_team  and
+			away_team  and
+			odds  and
+			odds_type  and
+			edge >= 1.0 and 
+			match_id in [x.id for x in placed_bets] and
+			edgebet_id not in [x.edgebet_id for x in placed_bets] or
+			match_id not in [x.id for x in placed_bets]
+		):
+			try:
+				valid_outcome_object = validate_bet(edgebet, bovada_matches)
+			except Exception, e:
+				print e
+				print "validate bet failed"
+				pass
+			else:
+				try:
+					b = BovadaApi()
+					cookies = b.auth["cookies"]
+					headers = get_bovada_headers_generic()
+					p = PlaceBet()
+					stake = Kelly.get_stake(odds=odds, edge=edge, current_bank_roll=b.balance)
+					data = p.build_bet_selection(outcomeId=valid_outcome_object.outcome_id, priceId=valid_outcome_object.price_id, stake=stake)
+					if stake >= 1:
+						print "placing bet"
+						just_do_it = p.place(data=json.dumps(data), cookies=cookies, headers=headers)
+						if just_do_it:
+							placed_bets.append(Match(id=match_id, edgebet_id=edgebet_id, bookmaker_id=bookmaker_id, stake=stake))
+					else:
+						print "stake to small"
+				except Exception, e:
+					print e
+		else:
+			print "fuck"
+			pass
 
-	
 
 
-	
+
+			
+
+			
 
 
-#check if the bet is a bovada bet
+
+#check if the edgebet is a bovada bet
 def return_bovada_bets(data):
 	bets = json.loads(data) # loads the bets as a json object
 	new_edgebets = [edgebet for edgebet in bets['new_edges']] #create a new list of just the items inside the new_edges list
@@ -195,10 +116,6 @@ def return_bovada_bets(data):
 			edge = None #if we can't convert the edge to a float, or a valueerror/keyerror is raised (no edge is present), we'll set the edge to None. and we will just pass on it. 
 		output = new_edge['output']
 		offer = new_edge['o2']['offer'] 
-		spread_line = None
-		spread_value = None
-		total_line = None
-		total_value = None
 		odds_type = get_odds_type(offer['odds_type'])
 		bookmaker = new_edge["o2"]["offer"]["bookmaker"]["name"]
 		bookmaker_id = int(new_edge["o2"]["offer"]["bookmaker"]["id"])
@@ -209,67 +126,57 @@ def return_bovada_bets(data):
 		edgebet_id = search_dictionary("id", offer)
 		home_team = search_dictionary("hteam", offer)['name']
 		away_team = search_dictionary("ateam", offer)['name']
+		odds = float(new_edge['o2']['o1'])
+
+		try:
+			handicap = float(new_edge["o2"]["o3"])
+		except KeyError, e:
+			handicap = None
+
 		
 		#new_edge.output not to be confused with something else
 		if output == 1:
-			moneyline = "H" # stands for Home
-			spread_line  = "H" # stands for Home
-			total_line = "O" #stands for over
-			spread_value = float(new_edge["o2"]["o3"])
-			total_value = float(new_edge["o2"]['o3'])
-			odds = float(new_edge['o2']['o1'])
+			outcome_type = "H" if "moneyline" in odds_type.lower() else "H" if "spread" in odds_type.lower() else "O" 
 			
-			
-			
-			
+
 		elif output == 2:
-			moneyline = "D"  #stands for draw
-			spread_line = "A" #stands for away
-			total_line = "U" #stands for under
-			spread_value = float(new_edge["o2"]["o3"])
-			total_value = float(new_edge["o2"]["o3"])
-			odds = float(new_edge['o2']['o2'])
+			outcome_type = "D" if "moneyline" in odds_type.lower() else "A" if "spread" in odds_type.lower() else "U"
 			
 
 		elif output == 3:
-			moneyline = "A"
-			odds = float(new_edge['o2']['o3'])
+			outcome_type = "A"
+		
 			
 
 
-		if is_bovada_bet(bookmaker):
+		if bookmaker == "Bovada":
 			bovada_bets.append(
 			{"home_team": home_team, 
 			"away_team": away_team, 
 			"odds": odds,
+			"handicap": handicap,
 			"bookmaker_id": bookmaker_id,
 			"match_id": match_id,
 			"time": time,
 			"start_time": start_time,
-			"spread_line": spread_line,
-			"moneyline": moneyline,
-			"total_line": total_line,
-			"spread_value": spread_value,
-			"total_value": total_value,
-			"spread_value": spread_value,
 			"odds_type": odds_type,
 			'edge': edge,
 			'sport': sport,
 			"edgebet_id": edgebet_id})
 		elif testing == True:
-			bovada_bets.append({"home_team": home_team, 
-			"away_team": away_team, 
-			"odds": odds,
-			"bookmaker_id":bookmaker_id,
-			"match_id": match_id,
-			"spread_line": spread_line,
-			"total_line": total_line,
-			"total_value": total_value,
-			"spread_value": spread_value,
-			"odds_type": get_odds_type(odds_type),
-			'edge': edge,
-			'sport': sport,
-			"edgebet_id": edgebet_id})
+			bovada_bets.append({
+				"home_team": home_team, 
+				"away_team": away_team, 
+				"odds": odds,
+				"bookmaker_id":bookmaker_id,
+				"match_id": match_id,
+				'edge': edge,
+				'sport': sport,
+				"odds_type": odds_type,
+				"edgebet_id": edgebet_id,
+				"time": time,
+				"start_time": start_time}
+			)
 	return bovada_bets
 
 			
@@ -290,13 +197,13 @@ def get_odds_type(num):
 		return "Total"
 
 	elif num == 3:
-		return "Point Spread"
+		return "PointSpread"
 
 	elif num == 1:
 		return "Moneyline"
 
 	elif num == 0:
-		return "3-Way Moneyline" #threeway money line
+		return "3-WayMoneyline" #threeway money line
 
 
 
@@ -326,7 +233,6 @@ def run():
 			print "refetching bovada matches"
 			bovada_matches = get_bovada_matches()
 		log.log(logging.INFO, sys.stdout)
-		time.sleep(0.1)
 
 
 run()

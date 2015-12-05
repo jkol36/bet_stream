@@ -7,75 +7,105 @@ from bovadaAPI.bovadaAPI.search_dictionary_for_certain_keys import search_dictio
 
 
 
-# headers = {"Accept": "application/json", 
-# 	"Content-Type":"application/json;charset=utf-8", 
-# 	"Connection":"keep-alive", 
-# 	"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:40.0) Gecko/20100101 Firefox/40.0"}
-# response = requests.get("https://sports.bovada.lv/soccer/premier-league/watford-fc-manchester-utd-20151121?json=true", headers=headers)
 
-# for outcome in BovadaMatch.create_from_center_content(response.json()["data"]["regions"]["content_center"]).outcomes:
-
-
-def find_outcome(edgebet_obj, bovada_match_obj):
-
-
-	edgebet_obj_odds_type = edgebet_obj["odds_type"]
+def find_outcome(edgebet_obj, bovada_matches):
+	print "finding outcome"
+	sport = edgebet_obj["sport"]
 	
-	home_teams_equal = (
-			edgebet_obj["home_team"] == bovada_match_obj.home_team_full_name or
-			edgebet_obj["home_team"].lower() in bovada_match_obj.home_team_full_name.lower()
-		)
+	if sport == "soccer":
+		bmatches = bovada_matches["soccer_matches"]
+	elif sport == "basketball":
+		bmatches = bovada_matches["basketball_matches"]
+
+	elif sport == "football" or sport == "us football":
+		bmatches = bovada_matches["football_matches"]
+
+	elif sport == "baseball":
+		bmatches = bovada_matches["baseball_matches"]
+
+	elif sport == "rugby":
+		bmatches = bovada_matches["rugby_matches"]
+
+	else:
+		print "got something else for sport %s" % sport
+		bmatches = []
+
+	for match in bmatches:
+		match_home_team_1 = match.home_team_full_name.split(" ")[0].lower()
+		match_home_team_2  = match.home_team_full_name.split(" ")[1].lower()
+		match_away_team_1 = match.away_team_full_name.split(" ")[0].lower()
+		match_away_team_2 = match.away_team_full_name.split(" ")[1].lower()
+		match.home_team_full_name = "".join(x for x in match.home_team_full_name.split(" ")).lower()
+		match.away_team_full_name = "".join(x for x in match.away_team_full_name.split(" ")).lower()
+		edgebet_obj["home_team"] = "".join(x for x in edgebet_obj["home_team"].split(" ")).lower()
+		edgebet_obj["away_team"] = "".join(x for x in edgebet_obj["away_team"].split(" ")).lower()
+		home_team_1 =  edgebet_obj["home_team"].lower().split(" ")[0].lower()
+		home_team_2 = edgebet_obj["home_team"].lower().split(" ")[1].lower()
+		away_team_1 = edgebet_obj["away_team"].lower().split(" ")[0].lower()
+		away_team_2 = edgebet_obj["away_team"].lower().split(" ")[1].lower()
+		if (
+			match.home_team_full_name in edgebet_obj["home_team"] or 
+			match.home_team_full_name in home_team_1 or 
+			home_team_1 in match.home_team_full_name or 
+			match.home_team_full_name in home_team_2 or
+			home_team_2 in match.home_team_full_name or
+			match.away_team_full_name in edgebet_obj["away_team"] or
+			match.away_team_full_name in away_team_1 or 
+			away_team_1 in match.away_team_full_name or 
+			match.away_team_full_name in away_team_2 or
+			away_team_2 in match.away_team_full_name or
+			edgebet_obj["home_team"] in match.home_team_full_name or
+			edgebet_obj["away_team"] in match.away_team_full_name or
+			edgebet_obj["home_team"] == match.home_team_full_name or
+			edgebet_obj["away_team"] == match.away_team_full_name or
+			match_home_team_1 in home_team_1 or
+			match_home_team_1 == home_team_1 or
+			home_team_1 in match_home_team_1 or
+			home_team_1 == match_home_team_1 or 
+			home_team_1 in match_home_team_2 or 
+			home_team_1 == match_home_team_2 or
+			match_home_team_2 in home_team_1 or
+			match_home_team_2 == home_team_1 or
+			home_team_1 in match_home_team_2 or
+			home_team_1 == match_home_team_2 or
+			match_home_team_2 == home_team_2 or
+			match_home_team_2 in home_team_2 or
+			home_team_2 in match_home_team_2 or 
+			match_home_team_2 == home_team_2 or
+			match_home_team_2 == home_team_1 or
+			match_home_team_2 in home_team_1 or
+			match_away_team_1 in away_team_1 or
+			match_away_team_1 == away_team_1 or
+			away_team_1 in match_away_team_1 or
+			away_team_1 == match_away_team_1 or
+			away_team_1 in match_away_team_2 or
+			match_away_team_2 in away_team_1 or 
+			away_team_1 == match_away_team_2 or
+			match_away_team_2 == away_team_1 or
+			match_away_team_2 == away_team_2 or
+			match_away_team_2 in away_team_2 or
+			away_team_2 in match_away_team_2
+
+			):
+			for outcome in match.outcomes:
+				outcome.odds_type = "".join(x for x in outcome.odds_type.split(" ")).lower()
+				edgebet_obj["odds_type"] = edgebet_obj["odds_type"].lower()
+				if (
+					outcome.odds_type in edgebet_obj["odds_type"] or
+					outcome.odds_type == edgebet_obj["odds_type"] and
+					outcome.odds == edgebet_obj["odds"]
+					):
+					if (
+						"spread" in edgebet_obj["odds_type"] or
+						"total" in edgebet_obj["odds_type"] and
+						outcome.handicap != edgebet_obj["handicap"]
+						
+					):
+						pass
+					else:
+						return outcome
+
 	
-	away_teams_equal = (
-		edgebet_obj["away_team"].lower() in bovada_match_obj.away_team_full_name.lower() or 
-		edgebet_obj["away_team"].lower() == bovada_match_obj.away_team_full_name.lower() 
-		)
-		
-
-	if home_teams_equal == False and away_teams_equal == False:
-		return None
-	
-
-
-
-	if edgebet_obj_odds_type == "Total":
-		for outcome_obj in bovada_match_obj.outcomes:
-			total_value_equal = edgebet_obj["total_value"] == outcome_obj.total_amount
-			outcome_types_equal = edgebet_obj["total_line"] == outcome_obj.outcome_type
-			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
-			if odds_equal and total_value_equal and outcome_types_equal:
-				return outcome_obj
-		return None
-
-	
-	
-
-	elif (
-		edgebet_obj_odds_type == "Point Spread" or 
-		edgebet_obj_odds_type == "Goal Spread" or 
-		edgebet_obj_odds_type == "Point Spread --sets"
-		):
-		for outcome_obj in bovada_match_obj.outcomes:
-			spread_value_equal = edgebet_obj["spread_value"] == outcome_obj.spread_amount
-			outcome_types_equal = edgebet_obj["spread_line"] == outcome_obj.outcome_type
-			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
-			if odds_equal and spread_value_equal and outcome_types_equal:
-				return outcome_obj
-			else:
-				print "something is not equal"
-				
-		return None
-
-	elif edgebet_obj_odds_type == "Moneyline" or edgebet_obj_odds_type == "3-Way Moneyline":
-		print "moneyline"
-		for outcome_obj in bovada_match_obj.outcomes:
-			outcome_types_equal = outcome_obj.outcome_type == edgebet_obj["moneyline"]
-			odds_equal = float(edgebet_obj["odds"]) == float(outcome_obj.price_decimal)
-			print "outcome types equal", outcome_types_equal
-			print "odds_equal", odds_equal
-			if odds_equal and outcome_types_equal:
-				return outcome_obj
-		return None
 
 
 
@@ -83,32 +113,8 @@ def find_outcome(edgebet_obj, bovada_match_obj):
 			
 
 
-def validate_bet(url, edgebet_obj):
+def validate_bet(edgebet_obj, bovada_matches):
+	return find_outcome(edgebet_obj, bovada_matches)
 
-	try:
-		edgebet_odds_type = edgebet_obj['odds_type']
-	except KeyError, e:
-		return None
-
-	try:
-		edgebet_odds = edgebet_obj["odds"]
-	except KeyError, e:
-		return None
-
-
-
-	#we need all three to continue (put_on, odds, odds_type)
-	#if we made it this far without returning....
-	response = requests.get(url+"?json=true", headers=get_bovada_headers_generic())
-	if was_successful(response):
-		bmatch = BovadaMatch.create_from_center_content(response.json()["data"]["regions"]["content_center"])
-		if bmatch:
-			outcome = find_outcome(edgebet_obj, bmatch)
-			return outcome
-
-	else:
-		print "validating bet failed"
-		print response.reason
-		print response.status_code
 
 			
