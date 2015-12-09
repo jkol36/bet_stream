@@ -2,8 +2,6 @@ import requests
 import json
 from bovadaAPI.bovadaAPI.api import BovadaApi
 from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
-from bovadaAPI.bovadaAPI.was_successful import was_successful
-from search_dictionary_for_certain_keys import search_dictionary_for_certain_keys as search_dict
 
 
 
@@ -40,7 +38,7 @@ class PlaceBet(object):
 	def place(self, data, cookies, headers):
 		if cookies and headers and data:
 			response = requests.post('https://sports.bovada.lv/services/sports/bet/betslip', headers=headers, cookies=cookies, data=data)
-			if was_successful(response):
+			if response.status_code == 200:
 				try:
 					print response.json()
 				except:
