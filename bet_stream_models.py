@@ -231,20 +231,20 @@ class Edgebet(Bet):
 		home_team = edgebet["o2"]["offer"]["match"]["hteam"]["name"],
 		away_team = edgebet["o2"]["offer"]["match"]["ateam"]["name"],
 		outcome_type = (
-			"H" if self.odds_type == 1 and self.output == 1 else
-			"H" if self.odds_type == 3 and self.output == 1 else
-			"O" if self.odds_type == 4 and self.output == 1 else
-			"D" if self.odds_type == 1 and self.output == 2 else
-			"A" if self.odds_type == 3 and self.output == 2 else
-			"U" if self.odds_type == 4 and self.output == 2 else
-			"A" if self.output == 3 else 
+			"H" if odds_type == 1 and output == 1 else
+			"H" if odds_type == 3 and output == 1 else
+			"O" if odds_type == 4 and output == 1 else
+			"D" if odds_type == 1 and output == 2 else
+			"A" if odds_type == 3 and output == 2 else
+			"U" if odds_type == 4 and output == 2 else
+			"A" if output == 3 else 
 			None
 
 			)
 		odds = (
-			edgebet["o2"]["o1"] if self.output == 1 else
-			edgebet["o2"]["o2"] if self.output == 2 else
-			edgebet["o2"]["o3"] if self.output == 3 else
+			edgebet["o2"]["o1"] if output == 1 else
+			edgebet["o2"]["o2"] if output == 2 else
+			edgebet["o2"]["o3"] if output == 3 else
 			None
 			)
 
