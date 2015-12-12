@@ -32,9 +32,10 @@ from kelly import Kelly
 
 
 class BetStream(object):
-	def __init__(self, min_edge=1.0):
+	def __init__(self, min_edge=1.0, place_bet=True):
 		self.key = "c11ef000e51c34bac2fc"
 		self.min_edge = min_edge
+		self.place_bet = place_bet
 		self.pusher = pusherclient.Pusher(self.key)
 		return super(BetStream, self).__init__()
 	
@@ -127,11 +128,21 @@ class BetStream(object):
 				edgebet = Edgebet.create(edgebet)
 			except Exception, e:
 				print e
+
+			print edgebet.odds_type
+			print edgebet.odds
+			print edgebet.away_team
+			print edgebet.home_team
+			print edgebet.sport
+			print edgebet.outcome_type
+			print edgebet.handicap
 			for bovadabet in self.bovadabets:
 				if (edgebet == bovadabet and
 					bovadabet.outcome_id not in self.placed_bets
 					):
 					print "found it"
+					if self.place_bet == False:
+						return False
 					return bovadabet
 				else:
 					pass
@@ -143,14 +154,15 @@ class BetStream(object):
 
 	def run(self):
 		while True:
-			if self.checker - time.time() >= 1000:
+			if time.time() - self.checker >= 1000:
 				self.bovada_matches = get_bovada_matches()
+				self.checker = time.time()
 			self.log.log(logging.INFO, sys.stdout)
 
 
 
 
-s = BetStream()
+s = BetStream(place_bet=True)
 with s:
 	print s.run()
 
