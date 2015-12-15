@@ -1,5 +1,6 @@
 Beaker==1.7.0
 cached-property==1.2.0
+Django==1.9
 pusherclient==0.3.0
 pyflakes==1.0.0
 requests==2.8.1

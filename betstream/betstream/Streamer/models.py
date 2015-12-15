@@ -1,7 +1,7 @@
+from django.db import models
 
 
-
-class Bet(object):
+class Bet(models.Model):
 	"""
 	the base class for both BovadaBets and Edgebets and perhaps bets
 	from other bookmakers in the future. All attributes defined in the 
@@ -15,27 +15,37 @@ class Bet(object):
 		and pass in the other instance your trying to compare odds types with. If odds types match,
 		the function will return True, else False.
 	"""
-	def __init__(
-		self, 
-		home_team=None,
-		away_team=None,
-		sport=None,
-		odds_type=None,
-		odds=None,
-		handicap=None,
-		outcome_type=None,
-		*args, 
-		**kwargs
-		):
-		self.home_team = home_team
-		self.away_team = away_team
-		self.sport = sport
-		self.odds_type = odds_type
-		self.odds = odds
-		self.handicap = handicap
-		self.outcome_type = outcome_type
-		
-		return super(Bet, self).__init__()
+
+	home_team = models.CharField(
+		max_length = 250
+		)
+	away_team = models.CharField(
+		max_length = 250
+		)
+	sport = models.CharField(
+		max_length = 250, 
+		)
+	odds_type = models.IntegerField(
+		null = True, 
+		blank = True
+		)
+	odds = models.FloatField(
+		null = True, 
+		blank = True
+		)
+	handicap = models.FloatField(
+		null = True,
+		blank = True
+		)
+	outcome_type = models.CharField(
+		max_length=1,
+		null=True,
+		blank=True
+		)
+
+	def __init__(self, *args, **kwargs):
+		super(Bet, self).__init__(*args, **kwargs)
+
 
 	@property
 	def oddsTypePointSpread(self):
@@ -159,21 +169,26 @@ class Bet(object):
 
 
 class Bovadabet(Bet):
-	def __init__(
-		self,
-		match_id=None,
-		outcome_id=None,
-		price_id=None,
-		*args, 
-		**kwargs
-		):
-		self.match_id = match_id
-		self.outcome_id = outcome_id
-		self.price_id = price_id
-		return super(Bovadabet, self).__init__(*args, **kwargs)
+
+	match_id = models.IntegerField(
+		null = True,
+		blank=True
+		)
+	outcome_id = models.IntegerField(
+		null = True,
+		blank = True
+		)
+	price_id = models.IntegerField(
+		null = True,
+		blank = True
+		)
+	match_url = models.URLField(
+		max_length=250, 
+		null=True
+		)
 	
 	@classmethod
-	def create(cls, BovadaMatch):
+	def create(cls, BovadaMatch, *args, **kwargs):
 		for outcome in BovadaMatch.outcomes:
 			home_team = BovadaMatch.home_team_full_name.lower()
 			away_team = BovadaMatch.away_team_full_name.lower()
@@ -193,7 +208,7 @@ class Bovadabet(Bet):
 			odds = outcome.odds
 			handicap = outcome.handicap
 
-			yield cls(
+			obj = cls.objects.create(
 				match_id= match_id,
 				outcome_id=outcome.outcome_id,
 				home_team=home_team,
@@ -206,21 +221,37 @@ class Bovadabet(Bet):
 				odds = outcome.odds,
 				match_url = match_url
 			)
+			print "saving"
+			obj.save()
+			yield obj
 
 
 
 class Edgebet(Bet):
-	def __init__(
-		self,
-		edgebet_id=None,
-		edge=None,
-		*args, 
-		**kwargs
-		):
-		self.edgebet_id = edgebet_id
-		self.edge = edge
-		return super(Edgebet, self).__init__(*args, **kwargs)
 
+	edgebet_id = models.IntegerField(
+		null = True,
+		blank =  True
+		)
+	edge = models.FloatField(
+		null = True,
+		blank = True
+		)
+
+	recieved_date = models.DateTimeField(
+		null = True,
+		auto_now=True
+	)
+	is_placed = models.BooleanField(
+		default=False)
+
+	sibling = models.OneToOneField(
+		Bovadabet,
+		null = True
+		)
+
+
+	
 	@classmethod
 	def create(cls, edgebet):
 		""" returns a new instance of an Edgebet given a dictionary with 

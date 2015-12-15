@@ -19,10 +19,10 @@ import json #import the library module
 import logging
 import itertools
 from get_bovada_matches import get_bovada_matches
-from bovadaAPI.bovadaAPI.api import BovadaApi
-from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
+from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
+from betstream.bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 from bet_placer import PlaceBet
-from bet_stream_models import Bovadabet, Edgebet
+from models import Bovadabet, Edgebet
 from kelly import Kelly
 
 
@@ -53,6 +53,7 @@ class BetStream(object):
 		self.bovada_matches = get_bovada_matches()
 		self.bovadabets = []
 		self.placed_bets = []
+		self.recieved_bets = []
 		for match in itertools.chain(
 			self.bovada_matches["basketball_matches"],
 			self.bovada_matches["baseball_matches"],
@@ -62,7 +63,9 @@ class BetStream(object):
 			self.bovada_matches["football_matches"]
 			):
 			for bovadabet in Bovadabet.create(match):
+				bovadabet.save()
 				self.bovadabets.append(bovadabet)
+		#Bovadabet.objects.bulk_create(self.bovadabets)
 		print "there are {} possible bovadabets to bet on.".format(len(self.bovadabets))
 		self.checker = time.time()
 		self.pusher.connect() 
@@ -122,12 +125,18 @@ class BetStream(object):
 		elif edgebet["edge"] < self.min_edge:
 			return False
 
+
 		else:
-			#create our edgebet object and compare it with each any every possible outcome
+			
+			#create our edgebet object but doesn't save it to db
 			try:
 				edgebet = Edgebet.create(edgebet)
 			except Exception, e:
 				print e
+
+			#mark that we've recieved this bet. If it doesnt get placed,
+			#we can look into why that happend at another time.
+			self.recieved_bets.append(edgebet) 
 
 			print edgebet.odds_type
 			print edgebet.odds
@@ -136,17 +145,17 @@ class BetStream(object):
 			print edgebet.sport
 			print edgebet.outcome_type
 			print edgebet.handicap
-			for bovadabet in self.bovadabets:
-				if (edgebet == bovadabet and
-					bovadabet.outcome_id not in self.placed_bets
-					):
-					print "found it"
-					if self.place_bet == False:
-						return False
-					return bovadabet
-				else:
-					pass
-			print "could not find outcome"
+			# for bovadabet in self.bovadabets:
+			# 	if (edgebet == bovadabet and
+			# 		bovadabet.outcome_id not in self.placed_bets
+			# 		):
+			# 		print "found it"
+			# 		if self.place_bet == False:
+			# 			return False
+			# 		return bovadabet
+			# 	else:
+			# 		pass
+			# print "could not find outcome"
 
 
 				
@@ -154,10 +163,16 @@ class BetStream(object):
 
 	def run(self):
 		while True:
-			if time.time() - self.checker >= 1000:
+			if time.time() - self.checker >= 200:
+				Edgebet.objects.bulk_create(
+					itertools.Chain(
+						self.recieved_bets, 
+						self.placed_bets)
+					)
 				self.bovada_matches = get_bovada_matches()
 				self.checker = time.time()
 			self.log.log(logging.INFO, sys.stdout)
+			time.sleep(01)
 
 
 

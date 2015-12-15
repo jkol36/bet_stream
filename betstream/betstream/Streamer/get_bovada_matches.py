@@ -1,4 +1,4 @@
-from bovadaAPI.bovadaAPI.api import BovadaApi
+from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
 
 def get_bovada_matches():
 	print "hang tight, fetching the latest matches from bovada. This can take a while."

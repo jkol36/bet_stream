@@ -1,7 +1,7 @@
 import requests
 import json
-from bovadaAPI.bovadaAPI.api import BovadaApi
-from bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
+from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
+from betstream.bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 
 
 
