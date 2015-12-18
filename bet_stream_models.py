@@ -37,28 +37,6 @@ class Bet(object):
 		
 		return super(Bet, self).__init__()
 
-	@property
-	def oddsTypePointSpread(self):
-		return self.odds_type == 3
-
-	@property
-	def oddsTypeTotal(self):
-		return self.odds_type == 4
-
-	@property
-	def oddsTypeThreeWayMoneyLine(self):
-		return self.odds_type == 0
-
-	
-
-	@property
-	def oddsTypeMoneyline(self):
-		return self.odds_type == 1
-
-	@property
-	def handicapNull(self):
-		return self.handicap == None
-
 	def homeOrAwayMatch(self, other_instance):
 		"reformat home and away team so both are lowercase and one word."
 		self.home_team = "".join(x for x in self.home_team.split(" ")).lower()
@@ -88,72 +66,41 @@ class Bet(object):
 			)
 
 
-	def handicapsEqual(self, other_instance):
-		if type(self.handicap) == type(other_instance.handicap):
-			return self.handicap == other_instance.handicap
-
-	def oddsEqual(self, other_instance):
-		if type(self.odds) == type(other_instance.odds):
-			return self.odds == other_instance.odds
-		else:
-			try:
-				self.odds = float(self.odds)
-			except Exception, e:
-				return False
-			else:
-				try:
-					other_instance.odds = float(other_instance.odds)
-				except Exception, e:
-					return False
-				return self.odds == other_instance.odds
-
 	
-	def oddsTypeEqual(self, other_instance):
-		return (
-			self.oddsTypeMoneyline and 
-			other_instance.oddsTypeMoneyline or
-			self.oddsTypePointSpread and
-			other_instance.oddsTypePointSpread or
-			self.oddsTypeMoneyline and 
-			other_instance.oddsTypeMoneyline or
-			self.oddsTypeTotal and 
-			other_instance.oddsTypeTotal
-		)
-
-	def outcomeTypesEqual(self, other_instance):
-		return self.outcome_type.lower() == other_instance.outcome_type.lower()
+	
 	
 	def __eq__(self, other_instance):
 
 		if not (
 			self.homeOrAwayMatch(other_instance) and
-			self.oddsEqual(other_instance) and
-			self.oddsTypeEqual(other_instance) and
-			self.outcomeTypesEqual(other_instance)
+			str(self.outcome_type.lower()) == str(other_instance.outcome_type.lower())
 		):
 			return False
 		else:
-			if self.oddsTypeTotal:
+			if int(self.odds_type) == 4:
 				return (
-					other_instance.oddsTypeTotal and
-					self.handicapsEqual(other_instance)
+					int(other_instance.odds_type) == 4 and
+					float(other_instance.handicap) == self.handicap
 					)
 
-			elif self.oddsTypeMoneyline:
+			elif int(self.odds_type) == 1:
 				return (
-					other_instance.oddsTypeMoneyline
+					int(other_instance.odds_type) == 1
 				)
 
-			elif self.oddsTypePointSpread:
+			elif int(self.odds_type) == 3:
 				return (
-					other_instance.oddsTypePointSpread and
-					self.handicapsEqual(other_instance)
+					int(other_instance.odds_type) == 3 and
+					float(self.handicap) == float(other_instance.handicap)
 				)
 
-			elif self.oddsTypeThreeWayMoneyLine:
-				return other_instance.oddsTypeThreeWayMoneyLine
-			return False
+			elif int(self.odds_type) == 0:
+				return int(other_instance.odds_type) == 0
 
+			else:
+				print "got a different odds type"
+				print type(self.odds_type), type(other_instance.odds_type)
+				print self.odds_type, other_instance.odds_type
 
 
 
@@ -186,7 +133,7 @@ class Bovadabet(Bet):
 				odds_type = 3
 			elif odds_type == "Moneyline":
 				odds_type = 1
-			elif odds_type == "Total":
+			elif odds_type == "Total" or "Total" in "".join(odds_type.split(" ")):
 				odds_type = 4
 			elif odds_type == "3-Way Moneyline":
 				odds_type = 0
