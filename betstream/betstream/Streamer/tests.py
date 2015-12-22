@@ -1,14 +1,18 @@
 import unittest
 import json
-from bovadaAPI.bovadaAPI.api import BovadaApi
-from bet_stream_models import Bet, Edgebet, Bovadabet
+from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
+from betstream.Streamer.streamer_exceptions import StreamerException
+from betstream.Streamer.bet_stream import BetStream
+from betstream.Streamer.models import Bet, Edgebet, Bovadabet
 #b = BovadaApi()
 #b.auth
 
 #from bovadaAPI.bovadaAPI.api import BovadaApi
 
 
-data = json.dumps({"event":"edge_changes","data":"{\"new_edges\": [{\"id\": 18420123, \"o1\": {\"id\": 396287933, \"o1\": \"1.787\", \"o2\": \"2.070\", \"o3\": \"55.500\", \"o4\": \"0.000\", \"offer\": {\"id\": 381601627, \"last_verified\": \"2015-12-05T19:30:44Z\"}}, \"o2\": {\"id\": 395745053, \"offer\": {\"id\": 382598316, \"bookmaker\": {\"id\": 234, \"name\": \"5 dimes / Island Casino\", \"url\": \"http://www.5dimes.eu/\"}, \"match\": {\"id\": 3441772, \"minorgroup\": {\"id\": 25167, \"mastergroup\": {\"sport\": {\"name\": \"us football\"}, \"country\": {\"id\": 367, \"name\": \"NCAA\"}}, \"name\": \"NCAA Division I FBS > Regular Season\"}, \"hteam\": {\"name\": \"Southern California Trojans\"}, \"ateam\": {\"name\": \"Stanford Cardinal\"}, \"start_time\": \"2015-12-06T00:45:00Z\"}, \"odds_type\": 4, \"last_verified\": \"2015-12-05T19:20:25Z\"}, \"time\": \"2015-12-05T16:12:24Z\", \"o1\": \"1.725\", \"o2\": \"2.180\", \"o3\": \"55.500\", \"o4\": \"0.000\"}, \"output\": 2, \"edge\": \"1.010\"}, {\"id\": 18420124, \"o1\": {\"id\": 396287928, \"o1\": \"2.100\", \"o2\": \"1.781\", \"o3\": \"59.000\", \"o4\": \"0.000\", \"offer\": {\"id\": 380618257, \"last_verified\": \"2015-12-05T19:30:44Z\"}}, \"o2\": {\"id\": 396049587, \"offer\": {\"id\": 382407301, \"bookmaker\": {\"id\": 567, \"name\": \"Bovada\", \"url\": \"http://www.bovada.lv/\"}, \"match\": {\"id\": 3441772, \"minorgroup\": {\"id\": 25167, \"mastergroup\": {\"sport\": {\"name\": \"us football\"}, \"country\": {\"id\": 367, \"name\": \"NCAA\"}}, \"name\": \"NCAA Division I FBS > Regular Season\"}, \"hteam\": {\"name\": \"Southern California Trojans\"}, \"ateam\": {\"name\": \"Stanford Cardinal\"}, \"start_time\": \"2015-12-06T00:45:00Z\"}, \"odds_type\": 4, \"last_verified\": \"2015-12-05T19:29:24Z\"}, \"time\": \"2015-12-05T17:50:38Z\", \"o1\": \"1.909\", \"o2\": \"1.909\", \"o3\": \"59.000\", \"o4\": \"0.000\"}, \"output\": 2, \"edge\": \"1.033\"}], \"deleted_edges\": [18418734, 18419977, 18419546, 18419480, 18419475, 18419979, 18419682, 18419365, 18419976, 18419479, 18419364, 18418867, 18420120, 18419975, 18418868]}","channel":"edgebets"})
+data_dump = json.dumps({"event":"edge_changes","data":"{\"new_edges\": [{\"id\": 18420123, \"o1\": {\"id\": 396287933, \"o1\": \"1.787\", \"o2\": \"2.070\", \"o3\": \"55.500\", \"o4\": \"0.000\", \"offer\": {\"id\": 381601627, \"last_verified\": \"2015-12-05T19:30:44Z\"}}, \"o2\": {\"id\": 395745053, \"offer\": {\"id\": 382598316, \"bookmaker\": {\"id\": 234, \"name\": \"5 dimes / Island Casino\", \"url\": \"http://www.5dimes.eu/\"}, \"match\": {\"id\": 3441772, \"minorgroup\": {\"id\": 25167, \"mastergroup\": {\"sport\": {\"name\": \"us football\"}, \"country\": {\"id\": 367, \"name\": \"NCAA\"}}, \"name\": \"NCAA Division I FBS > Regular Season\"}, \"hteam\": {\"name\": \"Southern California Trojans\"}, \"ateam\": {\"name\": \"Stanford Cardinal\"}, \"start_time\": \"2015-12-06T00:45:00Z\"}, \"odds_type\": 4, \"last_verified\": \"2015-12-05T19:20:25Z\"}, \"time\": \"2015-12-05T16:12:24Z\", \"o1\": \"1.725\", \"o2\": \"2.180\", \"o3\": \"55.500\", \"o4\": \"0.000\"}, \"output\": 2, \"edge\": \"1.010\"}, {\"id\": 18420124, \"o1\": {\"id\": 396287928, \"o1\": \"2.100\", \"o2\": \"1.781\", \"o3\": \"59.000\", \"o4\": \"0.000\", \"offer\": {\"id\": 380618257, \"last_verified\": \"2015-12-05T19:30:44Z\"}}, \"o2\": {\"id\": 396049587, \"offer\": {\"id\": 382407301, \"bookmaker\": {\"id\": 567, \"name\": \"Bovada\", \"url\": \"http://www.bovada.lv/\"}, \"match\": {\"id\": 3441772, \"minorgroup\": {\"id\": 25167, \"mastergroup\": {\"sport\": {\"name\": \"us football\"}, \"country\": {\"id\": 367, \"name\": \"NCAA\"}}, \"name\": \"NCAA Division I FBS > Regular Season\"}, \"hteam\": {\"name\": \"Southern California Trojans\"}, \"ateam\": {\"name\": \"Stanford Cardinal\"}, \"start_time\": \"2015-12-06T00:45:00Z\"}, \"odds_type\": 4, \"last_verified\": \"2015-12-05T19:29:24Z\"}, \"time\": \"2015-12-05T17:50:38Z\", \"o1\": \"1.909\", \"o2\": \"1.909\", \"o3\": \"59.000\", \"o4\": \"0.000\"}, \"output\": 2, \"edge\": \"1.033\"}], \"deleted_edges\": [18418734, 18419977, 18419546, 18419480, 18419475, 18419979, 18419682, 18419365, 18419976, 18419479, 18419364, 18418867, 18420120, 18419975, 18418868]}","channel":"edgebets"})
+data = json.loads(data_dump)["data"]
+
 
 
 
@@ -46,7 +50,6 @@ class OutcomeFinder(object):
 
 
 
-
 class BetStreamTest(unittest.TestCase):
 
 	def assertOddsOutcomeTypeIsCorrect(self):
@@ -60,6 +63,16 @@ class BetStreamTest(unittest.TestCase):
 
 	def assertOddsEqual(self):
 		pass
+
+
+	def assertFindMatchWorks(self):
+		home_team = "western michigan"
+		away_team = "middle tennessee state"
+		odds_type = 3
+		odds = 1.87
+		outcome_type = "H"
+		handicap = -4.5
+		print Bovadabet.objects.filter(home_team=home_team, away_team=away_team, odds_type=odds_type, odds=odds, outcome_type=outcome_type, handicap=handicap)
 
 	def assertCreationOfBetClassWorksWithoutArgs(self):
 		return Bet()
@@ -112,31 +125,52 @@ class BetStreamTest(unittest.TestCase):
 		return edgebet.edge
 
 
-
+	def assertKellyWorks(self):
+		from betstream.Streamer.kelly import Kelly
+		api = BovadaApi()
+		api.auth
+		for edgebet in Edgebet.objects.filter(is_placed=False):
+			odds = edgebet.odds
+			edge = edgebet.edge
+			p_without_edge = Kelly.get_p(odds)
+			p_with_edge = p_without_edge + (edge - 1)
+			q_without_edge = Kelly.get_q(p_without_edge)
+			q_with_edge = Kelly.get_q(p_with_edge)
+			b = Kelly.get_b(odds)
+			percent_of_bank_roll_without_edge = Kelly.get_percent_of_bank_roll(b, p_without_edge, q_without_edge)
+			percent_of_bank_roll_with_edge = Kelly.get_percent_of_bank_roll(b, p_with_edge, q_with_edge)
+			stake_without_edge = Kelly.get_stake(percent_of_bank_roll_without_edge, api.balance)
+			stake_with_edge = Kelly.get_stake(percent_of_bank_roll_with_edge, api.balance)
+			print "_________start____________________________"
+			print "the odds are {}".format(odds)
+			print "the probability of success without the edge is {}".format(p_without_edge)
+			print "the probability of failure without the edge is {}".format(q_without_edge)
+			print "the probability of success with the edge is {}".format(p_with_edge)
+			print "the probability of failure with edge is {}".format(q_with_edge)
+			print "the edge is {}".format(edge)
+			print "you should bet {} of your bankroll without the edge".format(percent_of_bank_roll_without_edge)
+			print "the best wager for you without edge is {}".format(stake_without_edge)
+			print "you should bet {} with the edge".format(percent_of_bank_roll_with_edge)
+			print "the best wager for you with edge is {}".format(stake_with_edge)
+			print "____________________________________"
 
 
 	def runTest(self):
-		self.assertCreationOfBetClassWorksWithoutArgs()
-		self.assertCreationOfBetClassWorksWithArgs()
-		self.assertCreationOfBovadaBetWorksWithOutArgs()
-		self.assertCreationOfBovadaBetWorksWithArgs()
-		self.assertCanGetEdge()
+		return self.assertKellyWorks()
+
+	def place_edgebets(self):
+		for edgebet in Edgebet.objects.all():
+			for bovadabet in Bovadabet.objects.all():
+				if bovadabet == edgebet:
+					print bovadabet.home_team, edgebet.home_team
+					print bovadabet.away_team, edgebet.away_team
+					print bovadabet.odds_type, edgebet.odds_type
+					print bovadabet.outcome_type, edgebet.outcome_type
+					print bovadabet.odds, edgebet.odds
 
 
-OF = OutcomeFinder()
-def go():
-	outcomes = OF.run(match_type="basketball_matches")
-	while True:
-		try:
-			outcome_obj = next(outcomes)
-		except StopIteration:
-			return False
-		else:
-			if OF.assertOutComeAttributeIsEqualTo(outcome_obj["outcome"], "odds", 1.909):
-				if OF.assertOutComeAttributeIsEqualTo(outcome_obj["outcome"], "odds_type", "Point Spread"):
-					if OF.assertOutComeAttributeIsEqualTo(outcome_obj["outcome"], "outcome_type", "A"):
-						if OF.assertOutComeAttributeIsEqualTo(outcome_obj["outcome"], "handicap", 13):
-							return outcome_obj["match"].home_team_full_name
+
+
 
 t = BetStreamTest()
-t.runTest()
+print t.runTest()

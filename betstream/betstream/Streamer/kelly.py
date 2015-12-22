@@ -6,16 +6,30 @@
 class Kelly(object):
 
 	@classmethod
-	def get_stake(cls, odds, edge, current_bank_roll):
-		win_rate = Kelly.get_win_rate(odds, edge)
-		odds = odds - 1
-		percent_of_bank_roll = (((odds*win_rate - (1 - win_rate))/ odds))
-		return "%.f" %(current_bank_roll * percent_of_bank_roll * 1.5 * 100)
+	def get_percent_of_bank_roll(cls, b, p, q):
+		#b = The decimal odds - 1
+		#p probability of success
+		#Q = Probability of failure
+		return (b*p-q)/b
 
 	@classmethod
-	def get_win_rate(cls, odds, edge):
-		edge = edge/100
-		return 1 / (odds / (1 + edge))
+	def get_stake(cls, percent_of_bankroll, current_bank_roll):
+		return percent_of_bankroll * current_bank_roll
+
+	@classmethod
+	def get_p(cls, odds):
+		return 1/odds
+
+	@classmethod
+	def get_q(cls, p):
+		return 1 - p
+
+	@classmethod
+	def get_b(cls, odds):
+		return odds - 1
+
+
+
 
 
 

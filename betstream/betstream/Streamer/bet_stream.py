@@ -32,7 +32,7 @@ from kelly import Kelly
 
 
 class BetStream(object):
-	def __init__(self, min_edge=1.0, place_bet=True):
+	def __init__(self, min_edge=1.01, place_bet=True):
 		self.key = "c11ef000e51c34bac2fc"
 		self.min_edge = min_edge
 		self.place_bet = place_bet
@@ -50,10 +50,10 @@ class BetStream(object):
 		self.log = logging.getLogger()
 		self.log.addHandler(logging.FileHandler("betstream.log"))
 		self.pusher.connection.bind('pusher:connection_established', self.connection_handler)
+		#fetches bovada matches from bovada
 		self.bovada_matches = get_bovada_matches()
-		self.bovadabets = []
-		self.placed_bets = []
-		self.recieved_bets = []
+		#holds our bovadabet objects
+		self.placed_bets = [x.outcome_id for x in Bovadabet.objects.filter(is_placed=True)] + [i.edgebet_id for i in Edgebet.objects.filter(is_placed=True)]
 		for match in itertools.chain(
 			self.bovada_matches["basketball_matches"],
 			self.bovada_matches["baseball_matches"],
@@ -63,10 +63,7 @@ class BetStream(object):
 			self.bovada_matches["football_matches"]
 			):
 			for bovadabet in Bovadabet.create(match):
-				bovadabet.save()
-				self.bovadabets.append(bovadabet)
-		#Bovadabet.objects.bulk_create(self.bovadabets)
-		print "there are {} possible bovadabets to bet on.".format(len(self.bovadabets))
+				pass
 		self.checker = time.time()
 		self.pusher.connect() 
 		return self
@@ -84,102 +81,153 @@ class BetStream(object):
 		self.edgebets = json.loads(data)
 		self.new_edgebets = [edgebet for edgebet in self.edgebets["new_edges"]]
 		for edgebet in self.new_edgebets:
-			valid_bet = self.is_valid(edgebet)
-			if valid_bet:
-				try:
-					self.edge = float(edgebet["edge"])
-				except TypeError:
-					print "cant convert edge to float"
+			self.edgebet_placed = False
+			#check the bookmaker see if the bookmaker is equal to bovada
+			#if the bookmaker is equal to bovada,
+			#call self_and_create() passing in the raw
+			#json object which (should) return a new edgebet obj
+			#that is now saved in the database
+			#if we don't get back a edgebet obj instance (either because an)
+			#error is raised or because the bookmaker name isn't == bovada
+			#we pass and check the next bet
+			#otherwise, I attempt to find the bovada bet that should match
+			#our edgebet object exactly. If we find it, 
+			#we place the bet. Otherwise, we pass and move onto the next bet,
+			#finally if the place bet is successful, we log it, 
+			#which essentially means that we change the is_placed attribute on the edgebet
+			#and bovadabet to True
+			try:
+				self.bookmaker = edgebet["o2"]["offer"]["bookmaker"]["name"].lower()
+			except (KeyError):
+				print "can't find bookmaker attribute"
+				self.bookmaker = None
 
-				try:
-					b = BovadaApi()
-					cookies = b.auth["cookies"]
-					headers = get_bovada_headers_generic()
-					p = PlaceBet()
+			try:
+				self.edge = edgebet["edge"]
+			except (KeyError):
+				print "can't find the edge attribute"
+				self.edge = None
+
+			finally:
+				if (
+					not self.bookmaker or 
+					not self.edge
+					):
+					pass
+				elif (
+					self.bookmaker.lower() == "bovada" and
+					self.edge >= self.min_edge
+					):
+					self.edgebet_obj = Edgebet.create(edgebet)
+				else:
+					self.edgebet_obj = None
+			if not self.edgebet_obj:
+				pass
+
+			else:
+				self.bovada_bet_for_edgebet = self.find_bovada_bet_for(self.edgebet_obj)
+				self.edgebet = self.bovada_bet_for_edgebet[1]
+				self.bovadabet = self.bovada_bet_for_edgebet[0]
+				print self.edgebet
+				print self.bovadabet
+				if not self.bovada_bet_for_edgebet:
+					pass
+				elif (
+					self.bovadabet.outcome_id in self.placed_bets or
+					self.edgebet.edgebet_id in self.placed_bets
+					):
+					print "already bet on this outcome {}".format(bovadabet.outcome_id)
+					pass
+				else:
 					try:
-						stake = Kelly.get_stake(odds=valid_bet.odds, edge=self.edge, current_bank_roll=b.balance)
-					except Exception, e:
-						print "something went wrong trying to get the stake amount ", e
-					data = p.build_bet_selection(outcomeId=valid_bet.outcome_id, priceId=valid_bet.price_id, stake=stake)
-					if stake >= 1:
-						cha_ching = p.place(data=json.dumps(data), cookies=cookies, headers=headers)
-						if cha_ching:
-							self.placed_bets.append(valid_bet.outcome_id)
-				except Exception, e:
-					print e
+						if (
+							self.place_bet_on_bovada(
+							bovada_bet=self.bovadabet,
+							edgebet=self.edgebet)
+						):
+							self.placed_edgebet = True
 
+					except Exception, e:
+						print "could not place the bet because of {}".format(e)
+						
+
+					finally:
+						if self.placed_edgebet:
+							print "successfully placed {} vs {} outcome_type {}, odds_type {}".format(
+								self.edgebet_obj.home_team, 
+								self.edgbet_obj.away_team, 
+								self.edgebet_obj.outcome_type,
+								self.edgebet_obj.odds_type
+								)
+						else:
+							print "failed to place {} vs {} outcome_type: {}, odds_type: {} ".format(
+								self.edgebet_obj.home_team,
+								self.edgebet_obj.away_team,
+								self.edgebet_obj.outcome_type,
+								self.edgbet_obj.odds_type
+								)
+
+
+
+
+
+	def find_bovada_bet_for(self, edgebet):
+		for bet in Bovadabet.objects.filter(is_placed=False).order_by("-date_added"):
+			if bet == edgebet:
+				return [bet, edgebet]
+		print "could not find bovada bet"
+			
 
 
 	
-	def is_valid(self, edgebet):
-		"""this is valid function checks to see if the edgebet's bookmaker attribute
-			attribute is equal to bovada. If it is, then it checks the sport attribute to
-			see if the sport is us football (the only sport type we get back that isn't one word)
-			for some reason. After all of that logic, 
-			we instantiate a new Edgebet object and compare it against all our outcome objects
-			and return on a successful match.
-		"""
 
-		if edgebet["o2"]["offer"]["bookmaker"]["name"].lower() != "bovada":
+
+	def place_bet_on_bovada(self, bovada_bet, edgebet):
+		api = BovadaApi()
+		cookies = api.auth["cookies"]
+		headers = get_bovada_headers_generic()
+		placebet = PlaceBet()
+		p = Kelly.get_p(odds=bovada_bet.odds) + (edgebet.edge - 1)
+		q = Kelly.get_q(p)
+		b = Kelly.get_b(odds=bovada_bet.odds)
+		percent_of_bankroll_to_bet = Kelly.get_percent_of_bank_roll(
+			b,
+			p,
+			q
+		)
+		print "probability of you winning {}".format(p)
+		print "probability of you losing {}".format(q)
+		print "percent_of_bankroll_to_bet {}".format(percent_of_bankroll_to_bet)
+		stake = "%.f" %(Kelly.get_stake(percent_of_bankroll_to_bet, api.balance) * 100)
+		print "stake {}".format(stake)
+		data = placebet.build_bet_selection(outcomeId=bovada_bet.outcome_id, priceId=bovada_bet.price_id, stake=stake)
+		if stake >= 1 and data:
+			cha_ching = placebet.place(data=json.dumps(data), cookies=cookies, headers=headers)
+			if cha_ching:
+				bovada_bet.is_placed = True
+				edgebet.is_placed = True
+				bovada_bet.stake = stake
+				edgebet.stake = stake
+				bovada_bet.save()
+				edgebet.save()
+				self.placed_bets.append(bovada_bet.outcome_id)
+				self.placed_bets.append(edgebet.edgebet_id)
+				return True
 			return False
-		elif edgebet["edge"] < self.min_edge:
-			return False
-
-
 		else:
-			
-			#create our edgebet object but doesn't save it to db
-			try:
-				edgebet = Edgebet.create(edgebet)
-			except Exception, e:
-				print e
-
-			#mark that we've recieved this bet. If it doesnt get placed,
-			#we can look into why that happend at another time.
-			self.recieved_bets.append(edgebet) 
-
-			print edgebet.odds_type
-			print edgebet.odds
-			print edgebet.away_team
-			print edgebet.home_team
-			print edgebet.sport
-			print edgebet.outcome_type
-			print edgebet.handicap
-			# for bovadabet in self.bovadabets:
-			# 	if (edgebet == bovadabet and
-			# 		bovadabet.outcome_id not in self.placed_bets
-			# 		):
-			# 		print "found it"
-			# 		if self.place_bet == False:
-			# 			return False
-			# 		return bovadabet
-			# 	else:
-			# 		pass
-			# print "could not find outcome"
-
-
-				
-
+			print "stake to low"
+			return False
 
 	def run(self):
 		while True:
-			if time.time() - self.checker >= 200:
-				Edgebet.objects.bulk_create(
-					itertools.Chain(
-						self.recieved_bets, 
-						self.placed_bets)
-					)
-				self.bovada_matches = get_bovada_matches()
+			if time.time() - self.checker >= 1000:
+				#self.bovada_matches = get_bovada_matches()
 				self.checker = time.time()
 			self.log.log(logging.INFO, sys.stdout)
-			time.sleep(01)
 
 
 
 
-s = BetStream(place_bet=True)
-with s:
-	print s.run()
 
 
 

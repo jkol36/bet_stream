@@ -39,14 +39,12 @@ class PlaceBet(object):
 		if cookies and headers and data:
 			response = requests.post('https://sports.bovada.lv/services/sports/bet/betslip', headers=headers, cookies=cookies, data=data)
 			if response.status_code == 200:
-				try:
-					print response.json()
-				except:
-					pass
+				print response.json()
 				return True
 			else:
 				print response.reason
 				print response.status_code
+				return False
 		else:
 			raise Exception("can't place bet without cookies or headers")
 

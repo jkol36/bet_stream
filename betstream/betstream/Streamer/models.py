@@ -15,66 +15,70 @@ class Bet(models.Model):
 		and pass in the other instance your trying to compare odds types with. If odds types match,
 		the function will return True, else False.
 	"""
-
+	
 	home_team = models.CharField(
-		max_length = 250
+		max_length = 250, 
+		null = True,
+		blank = True
 		)
 	away_team = models.CharField(
-		max_length = 250
+		max_length = 250, 
+		null = True,
+		blank = True
 		)
 	sport = models.CharField(
 		max_length = 250, 
+		null = True,
+		blank = True
 		)
+
 	odds_type = models.IntegerField(
-		null = True, 
+		null = True,
 		blank = True
 		)
+
 	odds = models.FloatField(
-		null = True, 
+		null = True,
 		blank = True
 		)
+
 	handicap = models.FloatField(
 		null = True,
 		blank = True
 		)
 	outcome_type = models.CharField(
-		max_length=1,
-		null=True,
-		blank=True
+		max_length = 250, 
+		null = True,
+		blank = True
 		)
 
-	def __init__(self, *args, **kwargs):
-		super(Bet, self).__init__(*args, **kwargs)
+	date_added = models.DateTimeField(
+		null=True,
+		auto_now = True
+		)
+
+	is_placed = models.BooleanField(default=False)
+
+	win = models.BooleanField(default=False)
+
+	stake = models.FloatField(null=True, blank=True)
+
+	recieved_date = models.DateTimeField(auto_now=True, null=True)
 
 
-	@property
-	def oddsTypePointSpread(self):
-		return self.odds_type == 3
 
-	@property
-	def oddsTypeTotal(self):
-		return self.odds_type == 4
-
-	@property
-	def oddsTypeThreeWayMoneyLine(self):
-		return self.odds_type == 0
-
-	
-
-	@property
-	def oddsTypeMoneyline(self):
-		return self.odds_type == 1
-
-	@property
-	def handicapNull(self):
-		return self.handicap == None
-
-	def homeOrAwayMatch(self, other_instance):
+	def homeOrAwayMatch(self, other_instance=None):
+		if not other_instance:
+			return False
+		
 		"reformat home and away team so both are lowercase and one word."
-		self.home_team = "".join(x for x in self.home_team.split(" ")).lower()
-		self.away_team = "".join(x for x in self.away_team.split(" ")).lower()
-		other_instance.home_team = "".join(other_instance.home_team.split(" ")).lower()
-		other_instance.away_team = "".join(other_instance.away_team.split(" ")).lower()
+		try:
+			self.home_team = "".join(x for x in self.home_team.split(" ")).lower()
+			self.away_team = "".join(x for x in self.away_team.split(" ")).lower()
+			other_instance.home_team = "".join(other_instance.home_team.split(" ")).lower()
+			other_instance.away_team = "".join(other_instance.away_team.split(" ")).lower()
+		except Exception, e:
+			print e
 		
 		"""
 		return true if the home team or away team in either instance is equal to the home team
@@ -86,6 +90,7 @@ class Bet(models.Model):
 			eagles in philadelphiaeagles
 
 		""" 
+
 		return (
 				self.home_team in other_instance.home_team or
 				self.away_team in other_instance.away_team or 
@@ -98,72 +103,50 @@ class Bet(models.Model):
 			)
 
 
-	def handicapsEqual(self, other_instance):
-		if type(self.handicap) == type(other_instance.handicap):
-			return self.handicap == other_instance.handicap
-
-	def oddsEqual(self, other_instance):
-		if type(self.odds) == type(other_instance.odds):
-			return self.odds == other_instance.odds
-		else:
-			try:
-				self.odds = float(self.odds)
-			except Exception, e:
-				return False
-			else:
-				try:
-					other_instance.odds = float(other_instance.odds)
-				except Exception, e:
-					return False
-				return self.odds == other_instance.odds
 
 	
-	def oddsTypeEqual(self, other_instance):
-		return (
-			self.oddsTypeMoneyline and 
-			other_instance.oddsTypeMoneyline or
-			self.oddsTypePointSpread and
-			other_instance.oddsTypePointSpread or
-			self.oddsTypeMoneyline and 
-			other_instance.oddsTypeMoneyline or
-			self.oddsTypeTotal and 
-			other_instance.oddsTypeTotal
-		)
-
-	def outcomeTypesEqual(self, other_instance):
-		return self.outcome_type.lower() == other_instance.outcome_type.lower()
 	
-	def __eq__(self, other_instance):
+	
+	def __eq__(self, other_instance=None, *args, **kwargs):
+		#we are checking to see if the home team and away team match.
+		#if they match then the edgebet object is a sibling of 
+		#the bovada bet object, but the odds may have changed.
 
 		if not (
-			self.homeOrAwayMatch(other_instance) and
-			self.oddsEqual(other_instance) and
-			self.oddsTypeEqual(other_instance) and
-			self.outcomeTypesEqual(other_instance)
+			self.homeOrAwayMatch(other_instance) and 
+			str(self.outcome_type).lower() == str(other_instance.outcome_type).lower() and
+			float(self.odds) == float(other_instance.odds)
 		):
 			return False
 		else:
-			if self.oddsTypeTotal:
+			if int(self.odds_type) == 4:
 				return (
-					other_instance.oddsTypeTotal and
-					self.handicapsEqual(other_instance)
+					int(other_instance.odds_type) == 4 and
+					float(other_instance.handicap) == float(self.handicap)
 					)
 
-			elif self.oddsTypeMoneyline:
+			elif int(self.odds_type) == 1:
 				return (
-					other_instance.oddsTypeMoneyline
+					int(other_instance.odds_type) == 1
 				)
 
-			elif self.oddsTypePointSpread:
+			elif int(self.odds_type) == 3:
 				return (
-					other_instance.oddsTypePointSpread and
-					self.handicapsEqual(other_instance)
+					int(other_instance.odds_type) == 3 and
+					float(self.handicap) == float(other_instance.handicap)
 				)
 
-			elif self.oddsTypeThreeWayMoneyLine:
-				return other_instance.oddsTypeThreeWayMoneyLine
-			return False
+			elif int(self.odds_type) == 0:
+				return int(other_instance.odds_type) == 0
 
+			else:
+				print "got a different odds type"
+				print type(self.odds_type), type(other_instance.odds_type)
+				print self.odds_type, other_instance.odds_type
+				return False
+			#print self.odds_type, other_instance.odds_type
+			#return self.odds_type == other_instance.odds_type
+			#return False
 
 
 
@@ -172,23 +155,28 @@ class Bovadabet(Bet):
 
 	match_id = models.IntegerField(
 		null = True,
-		blank=True
-		)
-	outcome_id = models.IntegerField(
-		null = True,
 		blank = True
 		)
 	price_id = models.IntegerField(
 		null = True,
 		blank = True
 		)
-	match_url = models.URLField(
-		max_length=250, 
-		null=True
+	outcome_id = models.IntegerField(
+		null = True,
+		blank = True
 		)
+	match_url = models.CharField(
+		max_length = 250,
+		null = True,
+		blank = True
+		)
+
+	def __unicode__(self):
+		return unicode(self.match_id)
+
 	
 	@classmethod
-	def create(cls, BovadaMatch, *args, **kwargs):
+	def create(cls, BovadaMatch):
 		for outcome in BovadaMatch.outcomes:
 			home_team = BovadaMatch.home_team_full_name.lower()
 			away_team = BovadaMatch.away_team_full_name.lower()
@@ -199,16 +187,16 @@ class Bovadabet(Bet):
 			odds_type = outcome.odds_type
 			if odds_type == "Point Spread" or "Spread" in odds_type:
 				odds_type = 3
-			elif odds_type == "Moneyline":
+			elif odds_type == "Moneyline" or odds_type == "Runline":
 				odds_type = 1
-			elif odds_type == "Total":
+			elif odds_type == "Total" or "Total" in "".join(odds_type.split(" ")):
 				odds_type = 4
 			elif odds_type == "3-Way Moneyline":
 				odds_type = 0
 			odds = outcome.odds
 			handicap = outcome.handicap
 
-			obj = cls.objects.create(
+			obj, _  = cls.objects.get_or_create(
 				match_id= match_id,
 				outcome_id=outcome.outcome_id,
 				home_team=home_team,
@@ -221,7 +209,7 @@ class Bovadabet(Bet):
 				odds = outcome.odds,
 				match_url = match_url
 			)
-			print "saving"
+
 			obj.save()
 			yield obj
 
@@ -231,26 +219,16 @@ class Edgebet(Bet):
 
 	edgebet_id = models.IntegerField(
 		null = True,
-		blank =  True
+		blank = True
 		)
 	edge = models.FloatField(
 		null = True,
 		blank = True
 		)
 
-	recieved_date = models.DateTimeField(
-		null = True,
-		auto_now=True
-	)
-	is_placed = models.BooleanField(
-		default=False)
+	sibling = models.ForeignKey(Bovadabet, null=True)
 
-	sibling = models.OneToOneField(
-		Bovadabet,
-		null = True
-		)
-
-
+	
 	
 	@classmethod
 	def create(cls, edgebet):
@@ -260,12 +238,16 @@ class Edgebet(Bet):
 		sport = edgebet["o2"]["offer"]["match"]["minorgroup"]["mastergroup"]["sport"]["name"].lower()
 		if sport == "us football":
 			sport = "football"
-		output = edgebet["output"]
-		edgebet_id = edgebet["o2"]["offer"]["id"]
-		edge = edgebet["edge"]
-		handicap = edgebet["o2"]["o3"]
-		match_id = edgebet["o2"]["offer"]["match"]["id"]
-		odds_type = edgebet["o2"]["offer"]["odds_type"]
+
+		try:
+			output = int(edgebet["output"])
+		except (KeyError, ValueError):
+			raise 
+		edgebet_id = int(edgebet["o2"]["offer"]["id"])
+		edge = float(edgebet["edge"])
+		handicap = float(edgebet["o2"]["o3"])
+		match_id = int(edgebet["o2"]["offer"]["match"]["id"])
+		odds_type = int(edgebet["o2"]["offer"]["odds_type"])
 		if isinstance(odds_type, tuple):
 			odds_type = odds_type[0]
 		else:
@@ -273,21 +255,22 @@ class Edgebet(Bet):
 		home_team = edgebet["o2"]["offer"]["match"]["hteam"]["name"]
 		away_team = edgebet["o2"]["offer"]["match"]["ateam"]["name"]
 		start_time = edgebet["o2"]["offer"]["match"]["start_time"]
-		if output == 1:
+
+		if int(output) == 1:
 			#point spread
 			if odds_type == 3:
 				outcome_type = "H"
 
 			#total
-			elif odds_type == 4:
+			if odds_type == 4:
 				outcome_type = "O"
 
 			#moneyline
-			elif odds_type == 1:
+			if odds_type == 1:
 				outcome_type = "H"
 
 			#3waymoneyline
-			elif odds_type== 0:
+			if odds_type== 0:
 				outcome_type = "H"
 		
 		elif output == 2:
@@ -297,20 +280,26 @@ class Edgebet(Bet):
 				outcome_type = "A"
 
 			#total
-			elif odds_type == 4:
+			if odds_type == 4:
 				outcome_type = "U"
 
 			#moneyline
 
-			elif odds_type == 1:
+			if odds_type == 1:
 				outcome_type == "A"
 
 			#3waymoneyline
-			elif odds_type == 0:
+			if odds_type == 0:
 				outcome_type = "D"
+
 
 		elif output == 3:
 			outcome_type = "A"
+
+		else:
+			print "output", output
+			print type(output)
+			outcome_type = None
 
 
 
@@ -324,7 +313,7 @@ class Edgebet(Bet):
 
 		
 		
-		return cls(
+		obj, _ =  cls.objects.get_or_create(
 			edgebet_id = int(edgebet_id) if edgebet_id else None,
 			edge = float(edge) if edge else None,
 			home_team = unicode(home_team) if home_team else None,
@@ -335,6 +324,12 @@ class Edgebet(Bet):
 			outcome_type = str(outcome_type) if outcome_type else None,
 			odds = float(odds) if odds else None
 			)
+		try:
+			obj.save()
+		except:
+			pass
+			
+		return obj
 
 
 

@@ -6,6 +6,7 @@ from models import Bovadabet, Edgebet
 
 class BovadabetAdmin(admin.ModelAdmin):
 	list_display = [
+
 		"home_team",
 		"away_team",
 		"sport",
@@ -15,7 +16,11 @@ class BovadabetAdmin(admin.ModelAdmin):
 		"outcome_type",
 		"match_id",
 		"outcome_id",
-		"price_id"
+		"price_id",
+		"is_placed",
+		"match_url",
+		'date_added',
+
 	]
 
 class EdgebetAdmin(admin.ModelAdmin):
@@ -30,8 +35,14 @@ class EdgebetAdmin(admin.ModelAdmin):
 		"outcome_type",
 		"edgebet_id",
 		"edge",
+		"recieved_date",
+		"is_placed",
+		'stake',
+		'win',
+		"sibling"
 	]
-		
+
+
 	
 
 admin.site.register(Bovadabet, BovadabetAdmin)
