@@ -77,7 +77,7 @@ WSGI_APPLICATION = 'betstream.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
-if debug == True:
+if DEBUG == True:
     try:
         from local import DATABASES
     except Exception:
