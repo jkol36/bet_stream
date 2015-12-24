@@ -77,17 +77,16 @@ WSGI_APPLICATION = 'betstream.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'edgebet',                      # Or path to database file if using sqlite3.
-        # The following settings are not used with sqlite3:
-        'USER': 'jonkolman',
-        'PASSWORD': 'J0nnyb0y123',
-        'HOST': 'localhost',                      # Empty for localhost through domain sockets or           '127.0.0.1' for localhost through TCP.
-        'PORT': '',                      # Set to empty string for default.
-    }
-}
+if debug == True:
+    try:
+        from local import DATABASES
+    except Exception:
+        print "cannot find your database configuration details. Did you create a local.py file with your database info stored in there?"
+    else:
+        DATABASES = DATABASES
+else:
+    import dj_database_url
+    DATABASES = {"default": dj_database_url.config()}
 
 
 # Password validation
