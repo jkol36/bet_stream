@@ -39,7 +39,8 @@ class EdgebetAdmin(admin.ModelAdmin):
 		"is_placed",
 		'stake',
 		'win',
-		"sibling"
+		"sibling",
+		'start_time'
 	]
 
 

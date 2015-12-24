@@ -4,6 +4,9 @@ from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
 from betstream.Streamer.streamer_exceptions import StreamerException
 from betstream.Streamer.bet_stream import BetStream
 from betstream.Streamer.models import Bet, Edgebet, Bovadabet
+from datetime import datetime, timedelta
+from betstream.Streamer.compare_times import time_difference
+from django.utils import timezone
 #b = BovadaApi()
 #b.auth
 
@@ -64,6 +67,14 @@ class BetStreamTest(unittest.TestCase):
 	def assertOddsEqual(self):
 		pass
 
+	def assert_match_starts_within_two_hours(self, match):
+		if match.start_time == None:
+			return False
+		else:
+			#print time_difference(match.start_time)
+			return (
+				time_difference(match.start_time).seconds <= 7200
+				)
 
 	def assertFindMatchWorks(self):
 		home_team = "western michigan"
@@ -156,7 +167,41 @@ class BetStreamTest(unittest.TestCase):
 
 
 	def runTest(self):
-		return self.assertKellyWorks()
+		for match in Edgebet.objects.order_by("-start_time"):
+			if self.assert_match_starts_within_two_hours(match):
+				print "true"
+				print match.home_team
+
+	
+
+		#hours_until_event = int(str(t_future - t_now)[0])
+		
+		
+		#date_object = datetime.strptime(future, '%b %d %Y %I:%M%p')
+
+
+	def assertCanFindMatches(self):
+		unmatched_edgebets = []
+		for edgebet in Edgebet.objects.filter(
+			is_placed=False
+			).order_by("-recieved_date"):
+
+			for bovadabet in Bovadabet.objects.filter(is_placed=False).order_by("-date_added"):
+				try:
+					equal = edgebet == bovadabet or bovadabet == edgebet
+				except Exception, e:
+					pass
+					equal = False
+				finally:
+					if equal:
+						print "found a match"
+						break
+
+
+			unmatched_edgebets.append(edgebet)
+		print "number of unmatched edgebets {}".format(len(unmatched_edgebets))
+		print "percentage of unmatched_edgebets {}".format(len(unmatched_edgebets / len([x for x in edgebet.objects.all()])))
+
 
 	def place_edgebets(self):
 		for edgebet in Edgebet.objects.all():

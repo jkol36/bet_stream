@@ -57,6 +57,10 @@ class Bet(models.Model):
 		auto_now = True
 		)
 
+	start_time = models.DateTimeField(
+		null=True,
+		)
+
 	is_placed = models.BooleanField(default=False)
 
 	win = models.BooleanField(default=False)
@@ -107,7 +111,7 @@ class Bet(models.Model):
 	
 	
 	
-	def __eq__(self, other_instance=None, *args, **kwargs):
+	def __eq__(self, other_instance, *args, **kwargs):
 		#we are checking to see if the home team and away team match.
 		#if they match then the edgebet object is a sibling of 
 		#the bovada bet object, but the odds may have changed.
@@ -144,9 +148,7 @@ class Bet(models.Model):
 				print type(self.odds_type), type(other_instance.odds_type)
 				print self.odds_type, other_instance.odds_type
 				return False
-			#print self.odds_type, other_instance.odds_type
-			#return self.odds_type == other_instance.odds_type
-			#return False
+			
 
 
 
@@ -195,23 +197,43 @@ class Bovadabet(Bet):
 				odds_type = 0
 			odds = outcome.odds
 			handicap = outcome.handicap
+			try:
+				obj, _  = cls.objects.get_or_create(
+					match_id= match_id,
+					outcome_id=outcome.outcome_id,
+					home_team=home_team,
+					away_team=away_team,
+					price_id=outcome.price_id,
+					outcome_type=outcome.outcome_type,
+					sport = sport,
+					odds_type = odds_type,
+					handicap=outcome.handicap,
+					odds = outcome.odds,
+					match_url = match_url
+				)
+			except Exception, e:
+				#fails sometimes because get returns more than 1 it returned 2
+				obj = cls.objects.filter(
+					match_id= match_id,
+					outcome_id=outcome.outcome_id,
+					home_team=home_team,
+					away_team=away_team,
+					price_id=outcome.price_id,
+					outcome_type=outcome.outcome_type,
+					sport = sport,
+					odds_type = odds_type,
+					handicap=outcome.handicap,
+					odds = outcome.odds,
+					match_url = match_url
 
-			obj, _  = cls.objects.get_or_create(
-				match_id= match_id,
-				outcome_id=outcome.outcome_id,
-				home_team=home_team,
-				away_team=away_team,
-				price_id=outcome.price_id,
-				outcome_type=outcome.outcome_type,
-				sport = sport,
-				odds_type = odds_type,
-				handicap=outcome.handicap,
-				odds = outcome.odds,
-				match_url = match_url
-			)
-
-			obj.save()
-			yield obj
+					).order_by("-date_added")[0]
+				yield obj
+			else:
+				try:
+					obj.save()
+				except:
+					pass
+				yield obj
 
 
 
@@ -247,6 +269,7 @@ class Edgebet(Bet):
 		edge = float(edgebet["edge"])
 		handicap = float(edgebet["o2"]["o3"])
 		match_id = int(edgebet["o2"]["offer"]["match"]["id"])
+		start_time = edgebet["o2"]["offer"]["match"]["start_time"]
 		odds_type = int(edgebet["o2"]["offer"]["odds_type"])
 		if isinstance(odds_type, tuple):
 			odds_type = odds_type[0]
@@ -312,24 +335,41 @@ class Edgebet(Bet):
 			)
 
 		
-		
-		obj, _ =  cls.objects.get_or_create(
-			edgebet_id = int(edgebet_id) if edgebet_id else None,
-			edge = float(edge) if edge else None,
-			home_team = unicode(home_team) if home_team else None,
-			away_team = unicode(away_team) if away_team else None,
-			sport = str(sport) if sport else None,
-			odds_type = int(odds_type) if odds_type else None,
-			handicap = float(handicap) if handicap else None,
-			outcome_type = str(outcome_type) if outcome_type else None,
-			odds = float(odds) if odds else None
-			)
 		try:
-			obj.save()
-		except:
-			pass
-			
-		return obj
+			obj, _ =  cls.objects.get_or_create(
+				edgebet_id = int(edgebet_id) if edgebet_id else None,
+				edge = float(edge) if edge else None,
+				home_team = unicode(home_team) if home_team else None,
+				away_team = unicode(away_team) if away_team else None,
+				sport = str(sport) if sport else None,
+				odds_type = int(odds_type) if odds_type else None,
+				handicap = float(handicap) if handicap else None,
+				outcome_type = str(outcome_type) if outcome_type else None,
+				start_time = str(start_time) if start_time else None,
+				odds = float(odds) if odds else None
+				)
+		except Exception, e:
+			print e
+			obj = cls.objects.filter(
+				edgebet_id = int(edgebet_id) if edgebet_id else None,
+				edge = float(edge) if edge else None,
+				home_team = unicode(home_team) if home_team else None,
+				away_team = unicode(away_team) if away_team else None,
+				sport = str(sport) if sport else None,
+				odds_type = int(odds_type) if odds_type else None,
+				handicap = float(handicap) if handicap else None,
+				outcome_type = str(outcome_type) if outcome_type else None,
+				start_time = str(start_time) if start_time else None,
+				odds = float(odds) if odds else None
+				).order_by("-edge").order_by("-start_time")[0]
+			return obj
+		else:
+			try:
+				obj.save()
+			except:
+				pass
+
+			return obj
 
 
 

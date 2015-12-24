@@ -5,6 +5,6 @@ class Command(BaseCommand):
 	help = "Starts the streamer"
 
 	def handle(self, *args, **kwargs):
-		b = BetStream(place_bet=True)
+		b = BetStream(place_bet=False)
 		with b:
 			b.run()
