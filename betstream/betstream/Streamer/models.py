@@ -65,6 +65,8 @@ class Bet(models.Model):
 
 	recieved_date = models.DateTimeField(auto_now=True, null=True)
 
+	start_time = models.DateTimeField(null=True)
+
 
 
 	def homeOrAwayMatch(self, other_instance=None):
@@ -322,7 +324,8 @@ class Edgebet(Bet):
 			odds_type = int(odds_type) if odds_type else None,
 			handicap = float(handicap) if handicap else None,
 			outcome_type = str(outcome_type) if outcome_type else None,
-			odds = float(odds) if odds else None
+			odds = float(odds) if odds else None,
+			start_time = start_time
 			)
 		try:
 			obj.save()

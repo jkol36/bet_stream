@@ -2,7 +2,7 @@ import unittest
 import json
 from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
 from betstream.Streamer.streamer_exceptions import StreamerException
-from betstream.Streamer.bet_stream import BetStream
+from betstream.Streamer.bet_stream import BetStream, ValidateBet
 from betstream.Streamer.models import Bet, Edgebet, Bovadabet
 #b = BovadaApi()
 #b.auth
@@ -51,6 +51,13 @@ class OutcomeFinder(object):
 
 
 class BetStreamTest(unittest.TestCase):
+
+	def assertValidBetWorks(self):
+		edgebet = Edgebet.objects.filter()[0]
+		bovadabet = Bovadabet.objects.filter()[0]
+		#print edgebet
+		print ValidateBet(edgebet)
+		print ValidateBet(bovadabet)
 
 	def assertOddsOutcomeTypeIsCorrect(self):
 		pass
@@ -156,7 +163,8 @@ class BetStreamTest(unittest.TestCase):
 
 
 	def runTest(self):
-		return self.assertKellyWorks()
+		for i in xrange(100):
+			self.assertValidBetWorks()
 
 	def place_edgebets(self):
 		for edgebet in Edgebet.objects.all():
