@@ -313,7 +313,11 @@ class Edgebet(Bet):
 			None
 			)
 
-		
+		if type(odds) == "unicode":
+			print "odds is of type unicode. Changing that..."
+			odds = str(odds)
+			print type(odds)
+
 		try:
 			print "creating edgebet object from blueprint..."
 			print (
@@ -360,8 +364,7 @@ class Edgebet(Bet):
 			print "i'm printing the object to make sure i'm returning something", obj
 			return obj
 			
-		finally:
-			return obj
+		
 
 
 
