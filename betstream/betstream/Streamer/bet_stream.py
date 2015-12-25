@@ -196,7 +196,7 @@ class BetStream(object):
 						self.bovadabet_valid == True and
 						self.edgebet_valid == True
 					):
-						
+
 						self.place_the_bet = self.place_bet_on_bovada(
 							bovada_bet=self.bovadabet,
 							edgebet=self.edgebet
@@ -216,7 +216,7 @@ class BetStream(object):
 					print self.bovada_bet_for_edgebet
 				
 
-			print "edgebet object is none"
+			
 
 
 
