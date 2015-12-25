@@ -21,7 +21,7 @@ import itertools
 from get_bovada_matches import get_bovada_matches
 from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
 from betstream.bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
-from betstream.Streamer.compare_times import hours_until_event
+from betstream.Streamer.compare_times import seconds_until_event
 from bet_placer import PlaceBet
 from models import Bovadabet, Edgebet
 from kelly import Kelly
@@ -52,9 +52,10 @@ class ValidateBet(object):
 		if self.bet.start_time is None:
 			print "already placed on this bet"
 			return False
-
-		if int(hours_until_event(self.bet.start_time)) > 2:
-			print "this game isn't for another {}".format(int(hours_until_event(self.bet.start_time)))
+		secs = seconds_until_event(self.bet.start_time)
+		print secs
+		if int(secs) > 7200:
+			print "this game isn't for another {} seconds".format(seconds_until_event(self.bet.start_time))
 			return False
 
 		return True
@@ -173,49 +174,62 @@ class BetStream(object):
 				):
 					self.edgebet = self.bovada_bet_for_edgebet[1]
 					self.bovadabet = self.bovada_bet_for_edgebet[0]
+					self.bovadabet_valid = False
+					self.edgebet_valid = False
+					try:
+						is_valid = ValidateBet(self.edgebet)
+					except Exception, e:
+						print "exception validating edgebet"
+						print e
+					else:
+						self.edgebet_valid = is_valid
 
-					if ValidateBet(self.edgebet) and ValidateBet(self.bovadabet):
-						try:
-							pass
-							# if (
-							# 	self.place_bet_on_bovada(
-							# 	bovada_bet=self.bovadabet,
-							# 	edgebet=self.edgebet)
-							# ):
-							# 	self.placed_edgebet = True
+					try:
+						is_valid = ValidateBet(self.bovadabet)
+					except Exception, e:
+						print "exception validating bovada bet"
+						print e
+					else:
+						self.bovadabet_valid = is_valid
 
-						except Exception, e:
-							print "could not place the bet because of {}".format(e)
-						
-
-						finally:
-							if self.placed_edgebet:
-								print "successfully placed {} vs {} outcome_type {}, odds_type {}".format(
-									self.edgebet_obj.home_team, 
-									self.edgbet_obj.away_team, 
-									self.edgebet_obj.outcome_type,
-									self.edgebet_obj.odds_type
-									)
-							else:
-								print "failed to place {} vs {} outcome_type: {}, odds_type: {} ".format(
-									self.edgebet_obj.home_team,
-									self.edgebet_obj.away_team,
-									self.edgebet_obj.outcome_type,
-									self.edgbet_obj.odds_type
-									)
-				
+					if (
+						self.bovadabet_valid and 
+						self.edgebet_valid
+					):
+						self.place_the_bet = self.place_bet_on_bovada(
+							bovada_bet=self.bovadabet,
+							edgebet=self.edgebet
+						)
+						if self.place_the_bet:
+							print "successfully placed {} vs {} outcome_type {}, odds_type {}".format(
+								self.edgebet_obj.home_team, 
+								self.edgebet_obj.away_team, 
+								self.edgebet_obj.outcome_type,
+								self.edgebet_obj.odds_type
+							)
+						else:
+							print "something went wrong trying to place the bet on bovada"
 
 				else:
-					print "could not find sibling"
+					print "I could not find a bovada bet for this edgebet object", self.edgebet_obj.edgebet_id
+					print self.bovada_bet_for_edgebet
+				
 
-
+			print "edgebet object is none"
 
 
 
 	def find_bovada_bet_for(self, edgebet):
 		for bet in Bovadabet.objects.filter(is_placed=False).order_by("-date_added"):
-			if bet == edgebet:
-				return [bet, edgebet]
+			try:
+				equal = bet == edgebet
+			except Exception, e:
+				print e
+				equal = False
+			finally:
+				if equal:
+					return [bet, edgebet]
+				pass
 		print "could not find bovada bet"
 		return None
 			
@@ -225,12 +239,6 @@ class BetStream(object):
 
 
 	def place_bet_on_bovada(self, bovada_bet, edgebet):
-		if (
-			edgebet.edgebet_id in self.placed_bets or
-			bovada_bet.outcome_id in self.placed_bets	
-		):
-			return False
-
 		api = BovadaApi()
 		cookies = api.auth["cookies"]
 		headers = get_bovada_headers_generic()

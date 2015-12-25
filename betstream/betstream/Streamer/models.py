@@ -109,7 +109,7 @@ class Bet(models.Model):
 	
 	
 	
-	def __eq__(self, other_instance=None, *args, **kwargs):
+	def __eq__(self, other_instance, *args, **kwargs):
 		#we are checking to see if the home team and away team match.
 		#if they match then the edgebet object is a sibling of 
 		#the bovada bet object, but the odds may have changed.
@@ -314,25 +314,54 @@ class Edgebet(Bet):
 			)
 
 		
-		
-		obj, _ =  cls.objects.get_or_create(
-			edgebet_id = int(edgebet_id) if edgebet_id else None,
-			edge = float(edge) if edge else None,
-			home_team = unicode(home_team) if home_team else None,
-			away_team = unicode(away_team) if away_team else None,
-			sport = str(sport) if sport else None,
-			odds_type = int(odds_type) if odds_type else None,
-			handicap = float(handicap) if handicap else None,
-			outcome_type = str(outcome_type) if outcome_type else None,
-			odds = float(odds) if odds else None,
-			start_time = start_time
-			)
 		try:
+			print "creating edgebet object from blueprint..."
+			print (
+				"edgebet_id", edgebet_id,
+				"edge", edge,
+				"home_team", home_team,
+				"away_team", away_team,
+				"sport", sport,
+				"odds_type", odds_type,
+				"handicap", handicap,
+				"outcome_type", outcome_type,
+				"odds", odds,
+				"start_time", start_time
+				)
+			obj, _ =  cls.objects.get_or_create(
+				edgebet_id = int(edgebet_id),
+				edge = float(edge),
+				home_team = unicode(home_team),
+				away_team = unicode(away_team),
+				sport = str(sport),
+				odds_type = int(odds_type),
+				handicap = float(handicap),
+				outcome_type = str(outcome_type),
+				odds = float(odds),
+				start_time = start_time
+			)
+		except Exception, e:
+			print e
+			obj = cls.objects.filter(
+				edgebet_id = int(edgebet_id),
+				edge = float(edge),
+				home_team = unicode(home_team),
+				away_team = unicode(away_team),
+				sport = str(sport),
+				odds_type = int(odds_type),
+				handicap = float(handicap),
+				outcome_type = str(outcome_type),
+				odds = float(odds),
+				start_time = start_time
+				).order_by("-start_time").order_by("-edge")[0]
+			return obj
+		else:
 			obj.save()
-		except:
-			pass
+			print "i'm printing the object to make sure i'm returning something", obj
+			return obj
 			
-		return obj
+		finally:
+			return obj
 
 
 

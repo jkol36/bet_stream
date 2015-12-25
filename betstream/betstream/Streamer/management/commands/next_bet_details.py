@@ -23,4 +23,4 @@ class Command(BaseCommand):
 				elif time_until_next_bet != None and time_until_next_bet > hrs_till_event:
 					time_until_next_bet = hrs_till_event
 					bet_obj = edgebet
-		print "your next bet is {} vs {} ({}) and it starts in {} hours. {}". format(bet_obj.home_team, bet_obj.away_team, bet_obj.sport, time_until_next_bet)
+		print "your next bet is {} vs {} ({}) and it starts in {} hours.".format(bet_obj.home_team, bet_obj.away_team, bet_obj.sport, time_until_next_bet)
