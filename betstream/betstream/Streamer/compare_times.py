@@ -24,12 +24,10 @@ def time_difference(event):
 def seconds_until_event(event):
 	print "getting seconds until event"
 	utc = UTC()
-	print utc
 	if isinstance(event, datetime):
 		print "got a datetime instance not a string"
 		time_until_event = event - datetime.now(utc)
-		print time_until_event
-		return time_until_event.seconds
+		return time_until_event.total_seconds()
 	#parse out the day
 	event_year = event[:4]
 	event_month = event[5:7]
@@ -45,7 +43,8 @@ def seconds_until_event(event):
 		tzinfo=utc
 	)
 	time_until_event = event - datetime.now(utc)
-	return time_until_event.seconds
+
+	return time_until_event.total_seconds()
 
 
 

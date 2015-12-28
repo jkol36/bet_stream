@@ -70,8 +70,6 @@ class Bet(models.Model):
 
 
 	def homeOrAwayMatch(self, other_instance=None):
-		if not other_instance:
-			return False
 		
 		"reformat home and away team so both are lowercase and one word."
 		try:
@@ -157,7 +155,7 @@ class Bovadabet(Bet):
 
 	match_id = models.IntegerField(
 		null = True,
-		blank = True
+		blank = True,
 		)
 	price_id = models.IntegerField(
 		null = True,
@@ -178,7 +176,7 @@ class Bovadabet(Bet):
 
 	
 	@classmethod
-	def create(cls, BovadaMatch):
+	def create(cls, BovadaMatch, already_added):
 		for outcome in BovadaMatch.outcomes:
 			home_team = BovadaMatch.home_team_full_name.lower()
 			away_team = BovadaMatch.away_team_full_name.lower()
@@ -187,6 +185,9 @@ class Bovadabet(Bet):
 			start_time = BovadaMatch.startTime
 			match_url = BovadaMatch.game_link
 			odds_type = outcome.odds_type
+			odds = outcome.odds
+			handicap = outcome.handicap
+
 			if odds_type == "Point Spread" or "Spread" in odds_type:
 				odds_type = 3
 			elif odds_type == "Moneyline" or odds_type == "Runline":
@@ -195,25 +196,30 @@ class Bovadabet(Bet):
 				odds_type = 4
 			elif odds_type == "3-Way Moneyline":
 				odds_type = 0
-			odds = outcome.odds
-			handicap = outcome.handicap
+			
 
-			obj, _  = cls.objects.get_or_create(
-				match_id= match_id,
-				outcome_id=outcome.outcome_id,
-				home_team=home_team,
-				away_team=away_team,
-				price_id=outcome.price_id,
-				outcome_type=outcome.outcome_type,
-				sport = sport,
-				odds_type = odds_type,
-				handicap=outcome.handicap,
-				odds = outcome.odds,
-				match_url = match_url
-			)
+			if (
+				outcome.outcome_id and 
+				outcome.outcome_id not in already_added
+			):
 
-			obj.save()
-			yield obj
+				obj = cls.objects.create(
+					match_id= match_id,
+					outcome_id=outcome.outcome_id,
+					home_team=home_team,
+					away_team=away_team,
+					price_id=outcome.price_id,
+					outcome_type=outcome.outcome_type,
+					sport = sport,
+					odds_type = odds_type,
+					handicap=outcome.handicap,
+					odds = outcome.odds,
+					match_url = match_url
+				)
+
+				obj.save()
+				yield obj
+		
 
 
 
@@ -313,10 +319,21 @@ class Edgebet(Bet):
 			None
 			)
 
-		if type(odds) == "unicode":
+		if "unicode" in str(type(odds)):
 			print "odds is of type unicode. Changing that..."
 			odds = str(odds)
 			print type(odds)
+		
+		if "unicode" in str(type(edge)):
+			edge = str(edge)
+
+		if "unicode" in str(type(handicap)):
+			handicap = str(handicap)
+
+
+
+
+
 
 		try:
 			print "creating edgebet object from blueprint..."
