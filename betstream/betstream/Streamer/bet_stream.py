@@ -198,6 +198,9 @@ class BetStream(object):
 
 
 	def place_bet_on_bovada(self, bovada_bet, edgebet):
+		if self.place_bet == False:
+			return False
+
 		if (
 			bovada_bet.outcome_id in self.placed_bets or
 			edgebet.edgebet_id in self.placed_bets
@@ -261,8 +264,9 @@ class BetStream(object):
 				self.bovada_matches = get_bovada_matches()
 				self.save_matches()
 				self.checker = time.time()
-			elif time.time() - self.checker == 800:
+			if time.time() - self.checker == 800:
 				self.remove_stale_matches()
+				self.checker = time.time()
 			self.log.log(logging.INFO, sys.stdout)
 			time.sleep(01)
 
