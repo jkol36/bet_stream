@@ -37,9 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'betstream.bovadaAPI',
     'betstream.Streamer',
     'betstream.Profiles',
+    'betstream.App'
 ]
 
 MIDDLEWARE_CLASSES = [

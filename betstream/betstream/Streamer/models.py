@@ -69,29 +69,22 @@ class Bet(models.Model):
 
 
 
-	def homeOrAwayMatch(self, other_instance=None):
-		
+	def homeOrAwayMatch(self, other_instance):
 		"reformat home and away team so both are lowercase and one word."
-		try:
-			self.home_team = "".join(x for x in self.home_team.split(" ")).lower()
-			self.away_team = "".join(x for x in self.away_team.split(" ")).lower()
-			other_instance.home_team = "".join(other_instance.home_team.split(" ")).lower()
-			other_instance.away_team = "".join(other_instance.away_team.split(" ")).lower()
-		except Exception, e:
-			print e
+		self.home_team = "".join(x for x in self.home_team.split(" ")).lower()
+		self.away_team = "".join(x for x in self.away_team.split(" ")).lower()
+		other_instance.home_team = "".join(other_instance.home_team.split(" ")).lower()
+		other_instance.away_team = "".join(other_instance.away_team.split(" ")).lower()
 		
 		"""
 		return true if the home team or away team in either instance is equal to the home team
 		or away team in the corresponding instance. Additionally, return true if either home team or away team
 		appears in the corresponding instance. 
-
 		Example:
 			will return true:
 			eagles in philadelphiaeagles
-
 		""" 
-
-		return (
+		if (
 				self.home_team in other_instance.home_team or
 				self.away_team in other_instance.away_team or 
 				self.home_team == other_instance.home_team or
@@ -100,29 +93,51 @@ class Bet(models.Model):
 				other_instance.away_team == self.away_team or 
 				other_instance.home_team == self.home_team or
 				other_instance.home_team in self.home_team
-			)
+			):
+			return True
 
 
+		""" 
+		split the home_team and away_team into seperate words at the space.
+		return True if any of those words appear in the corresponding object. 
+
+		"""
+		self.home_team_split = self.home_team.split(" ")
+		self.away_team_split = self.away_team.split(" ")
+		self.match = False
+		for word in self.home_team_split:
+			if (
+				word.lower() in other_instance.home_team.lower() or
+				word.lower() in other_instance.away_team.lower()
+			):
+				self.match = True
+			pass
+
+		for word in self.away_team_split:
+			if (
+				word.lower() in other_instance.away_team.lower() or 
+				word.lower() in other_instance.home_team.lower()
+
+			):
+				self.match = True
+			pass
+		return self.match
 
 	
 	
 	
-	def __eq__(self, other_instance, *args, **kwargs):
-		#we are checking to see if the home team and away team match.
-		#if they match then the edgebet object is a sibling of 
-		#the bovada bet object, but the odds may have changed.
+	def __eq__(self, other_instance):
 
 		if not (
-			self.homeOrAwayMatch(other_instance) and 
-			str(self.outcome_type).lower() == str(other_instance.outcome_type).lower() and
-			float(self.odds) == float(other_instance.odds)
+			self.homeOrAwayMatch(other_instance) and
+			str(self.outcome_type.lower()) == str(other_instance.outcome_type.lower())
 		):
 			return False
 		else:
 			if int(self.odds_type) == 4:
 				return (
 					int(other_instance.odds_type) == 4 and
-					float(other_instance.handicap) == float(self.handicap)
+					float(other_instance.handicap) == self.handicap
 					)
 
 			elif int(self.odds_type) == 1:
@@ -143,10 +158,6 @@ class Bet(models.Model):
 				print "got a different odds type"
 				print type(self.odds_type), type(other_instance.odds_type)
 				print self.odds_type, other_instance.odds_type
-				return False
-			#print self.odds_type, other_instance.odds_type
-			#return self.odds_type == other_instance.odds_type
-			#return False
 
 
 
@@ -331,55 +342,36 @@ class Edgebet(Bet):
 			handicap = str(handicap)
 
 
-
-
-
-
-		try:
-			print "creating edgebet object from blueprint..."
-			print (
-				"edgebet_id", edgebet_id,
-				"edge", edge,
-				"home_team", home_team,
-				"away_team", away_team,
-				"sport", sport,
-				"odds_type", odds_type,
-				"handicap", handicap,
-				"outcome_type", outcome_type,
-				"odds", odds,
-				"start_time", start_time
-				)
-			obj, _ =  cls.objects.get_or_create(
-				edgebet_id = int(edgebet_id),
-				edge = float(edge),
-				home_team = unicode(home_team),
-				away_team = unicode(away_team),
-				sport = str(sport),
-				odds_type = int(odds_type),
-				handicap = float(handicap),
-				outcome_type = str(outcome_type),
-				odds = float(odds),
-				start_time = start_time
+		print "creating edgebet object from blueprint..."
+		print (
+			"edgebet_id", edgebet_id,
+			"edge", edge,
+			"home_team", home_team,
+			"away_team", away_team,
+			"sport", sport,
+			"odds_type", odds_type,
+			"handicap", handicap,
+			"outcome_type", outcome_type,
+			"odds", odds,
+			"start_time", start_time
 			)
-		except Exception, e:
-			print e
-			obj = cls.objects.filter(
-				edgebet_id = int(edgebet_id),
-				edge = float(edge),
-				home_team = unicode(home_team),
-				away_team = unicode(away_team),
-				sport = str(sport),
-				odds_type = int(odds_type),
-				handicap = float(handicap),
-				outcome_type = str(outcome_type),
-				odds = float(odds),
-				start_time = start_time
-				).order_by("-start_time").order_by("-edge")[0]
-			return obj
-		else:
-			obj.save()
-			print "i'm printing the object to make sure i'm returning something", obj
-			return obj
+		obj =  cls.objects.create(
+			edgebet_id = int(edgebet_id),
+			edge = float(edge),
+			home_team = unicode(home_team),
+			away_team = unicode(away_team),
+			sport = str(sport),
+			odds_type = int(odds_type),
+			handicap = float(handicap),
+			outcome_type = str(outcome_type),
+			odds = float(odds),
+			start_time = start_time
+		)
+
+		obj.save()
+		return obj
+	
+			
 			
 		
 

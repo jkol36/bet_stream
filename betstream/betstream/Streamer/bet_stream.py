@@ -34,9 +34,6 @@ from kelly import Kelly
 
 
 
-
-
-
 class BetStream(object):
 	
 	def __init__(self, min_edge=1.01, place_bet=True):
@@ -44,7 +41,7 @@ class BetStream(object):
 		self.min_edge = min_edge
 		self.place_bet = place_bet
 		self.pusher = pusherclient.Pusher(self.key)
-		return super(BetStream, self).__init__()
+		
 	
 	
 
@@ -179,6 +176,8 @@ class BetStream(object):
 
 	def find_bovada_bet_for(self, edgebet):
 		for bet in Bovadabet.objects.filter(is_placed=False).order_by("-date_added"):
+			if bet.homeOrAwayMatch(edgebet):
+				print "home or away teams match!"
 			try:
 				equal = bet == edgebet
 			except Exception, e:
@@ -188,6 +187,7 @@ class BetStream(object):
 				if equal:
 					return [bet, edgebet]
 				pass
+
 	
 		print "could not find outcome"
 		return None
@@ -216,7 +216,7 @@ class BetStream(object):
 		
 		elif (
 			int(seconds_until_event(edgebet.start_time)) > 0 and
-			int(seconds_until_event(edgebet.start_time)) > 7200
+			int(seconds_until_event(edgebet.start_time)) > 10800
 		):
 			print "this game isn't for another {} seconds".format(seconds_until_event(edgebet.start_time))
 			return False
@@ -237,7 +237,7 @@ class BetStream(object):
 		print "probability of you winning {}".format(p)
 		print "probability of you losing {}".format(q)
 		print "percent_of_bankroll_to_bet {}".format(percent_of_bankroll_to_bet)
-		stake = "%.f" %(Kelly.get_stake(percent_of_bankroll_to_bet, api.balance) * 100)
+		stake = "%.f" %(Kelly.get_stake(percent_of_bankroll_to_bet, 1000) * 100)
 		print "stake {}".format(stake)
 		data = placebet.build_bet_selection(outcomeId=bovada_bet.outcome_id, priceId=bovada_bet.price_id, stake=stake)
 		if stake >= 1 and data:
@@ -261,14 +261,14 @@ class BetStream(object):
 	def run(self):
 		while True:
 			if time.time() - self.checker >= 1000:
+				self.remove_stale_matches()
 				self.bovada_matches = get_bovada_matches()
 				self.save_matches()
 				self.checker = time.time()
-			if time.time() - self.checker == 800:
-				self.remove_stale_matches()
-				self.checker = time.time()
+				break
+			
 			self.log.log(logging.INFO, sys.stdout)
-			time.sleep(01)
+			#time.sleep(01)
 
 
 

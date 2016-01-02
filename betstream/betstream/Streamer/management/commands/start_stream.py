@@ -7,4 +7,5 @@ class Command(BaseCommand):
 	def handle(self, *args, **kwargs):
 		b = BetStream(place_bet=True)
 		with b:
-			b.run()
+			while True:
+				b.run()
