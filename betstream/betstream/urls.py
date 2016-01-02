@@ -14,9 +14,17 @@ Including another URLconf
     2. Import the include() function: from django.conf.urls import url, include
     3. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
-from django.conf.urls import url
+from django.conf.urls import url, include
 from django.contrib import admin
+from betstream.App.views import Home
+from rest_framework.routers import DefaultRouter
+from betstream.App.views import EdgebetViewSet
+
+router = DefaultRouter()
+router.register(r"edgebets", EdgebetViewSet)
 
 urlpatterns = [
+	url(r'^', include(router.urls)),
     url(r'^admin/', admin.site.urls),
+    url(r'^$', Home),
 ]
