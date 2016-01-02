@@ -130,7 +130,8 @@ class Bet(models.Model):
 
 		if not (
 			self.homeOrAwayMatch(other_instance) and
-			str(self.outcome_type.lower()) == str(other_instance.outcome_type.lower())
+			str(self.outcome_type.lower()) == str(other_instance.outcome_type.lower()) and
+			float(self.odds) == float(other_instance.odds)
 		):
 			return False
 		else:
