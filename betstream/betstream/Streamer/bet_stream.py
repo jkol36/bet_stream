@@ -29,43 +29,14 @@ from kelly import Kelly
 
 
 
-
-	
-
-
-
 class BetStream(object):
 	
 	def __init__(self, min_edge=1.01, place_bet=True):
 		self.key = "c11ef000e51c34bac2fc"
 		self.min_edge = min_edge
 		self.place_bet = place_bet
-		self.pusher = pusherclient.Pusher(self.key)
 		
 	
-	
-
-
-
-	def __enter__(self, *args, **kwargs):
-		""" setup our logging and bind our pusher client to
-		our on_edge function. Also fetch the bovada matches. Then create a new
-		special object based on it's properties. Finally return our class instance """
-		self.log = logging.getLogger()
-		self.log.addHandler(logging.FileHandler("betstream.log"))
-		self.pusher.connection.bind('pusher:connection_established', self.connection_handler)
-		self.remove_stale_matches()
-		#fetches bovada matches from bovada
-		self.bovada_matches = get_bovada_matches()
-		self.placed_bets = [x.outcome_id for x in Bovadabet.objects.filter(is_placed=True)] + [i.edgebet_id for i in Edgebet.objects.filter(is_placed=True)]
-		self.save_matches()
-		self.checker = time.time()
-		self.pusher.connect() 
-		return self
-
-	def __exit__(self, *args, **kwargs):
-		"""this is where we'll save the bets we've made to a database if the script stops suddenly"""
-		return True
 
 	def connection_handler(self, data):
 		print "connected to edgebet"
@@ -259,12 +230,24 @@ class BetStream(object):
 			return False
 
 	def run(self):
+		""" setup our logging and bind our pusher client to
+		our on_edge function. Also fetch the bovada matches. Then create a new
+		special object based on it's properties. """
+		
+		self.pusher = pusherclient.Pusher(self.key)
+		self.log = logging.getLogger()
+		self.log.addHandler(logging.FileHandler("betstream.log"))
+		self.pusher.connection.bind('pusher:connection_established', self.connection_handler)
+		self.remove_stale_matches()
+		#fetches bovada matches from bovada
+		self.bovada_matches = get_bovada_matches()
+		self.placed_bets = [x.outcome_id for x in Bovadabet.objects.filter(is_placed=True)] + [i.edgebet_id for i in Edgebet.objects.filter(is_placed=True)]
+		self.save_matches()
+		self.checker = time.time()
+		self.pusher.connect() 
+		
 		while True:
 			if time.time() - self.checker >= 1000:
-				self.remove_stale_matches()
-				self.bovada_matches = get_bovada_matches()
-				self.save_matches()
-				self.checker = time.time()
 				break
 			
 			self.log.log(logging.INFO, sys.stdout)
