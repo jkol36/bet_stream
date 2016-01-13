@@ -76,6 +76,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'betstream.wsgi.application'
 
 
+#change this to change the sports you bet on
+
+SPORTS_TO_BET_ON = (
+    "basketball",
+    "soccer",
+    )
+
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
@@ -90,6 +97,10 @@ else:
     import dj_database_url
     DATABASES = {"default": dj_database_url.config()}
 
+
+#specify user model
+
+AUTH_USER_MODEL = "Profiles.Profile"
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
