@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractUser
 from random import random
 
 
@@ -17,7 +17,7 @@ class BovadaProfile(models.Model):
 
 
 
-class Profile(AbstractBaseUser):
+class Profile(AbstractUser):
 	pass
 
 	

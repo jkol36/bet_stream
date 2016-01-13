@@ -147,11 +147,6 @@ class BetStream(object):
 
 
 	def find_bovada_bet_for(self, edgebet):
-		available_sports = settings.SPORTS_TO_BET_ON
-		if sport not in available_sports:
-			print "skipping this bet based on sport"
-			return None
-		
 		home_team = " ".join(edgebet.home_team.split(",")).lower()
 		away_team = " ".join(edgebet.away_team.split(",")).lower()
 		for bet in Bovadabet.objects.filter(is_placed=False, home_team__icontains=edgebet.home_team, away_team__icontains=edgebet.away_team).order_by("-date_added"):

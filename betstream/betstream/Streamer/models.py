@@ -67,6 +67,8 @@ class Bet(models.Model):
 
 	start_time = models.DateTimeField(null=True)
 
+	tracked = models.BooleanField(default=False)
+
 
 
 	def homeOrAwayMatch(self, other_instance):
@@ -129,7 +131,6 @@ class Bet(models.Model):
 	def __eq__(self, other_instance):
 
 		if not (
-			self.homeOrAwayMatch(other_instance) and
 			str(self.outcome_type.lower()) == str(other_instance.outcome_type.lower()) and
 			float(self.odds) == float(other_instance.odds)
 		):
