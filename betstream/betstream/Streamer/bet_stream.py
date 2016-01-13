@@ -18,10 +18,12 @@ import time #import the library module
 import json #import the library module
 import logging
 import itertools
+from django.conf import settings
 from get_bovada_matches import get_bovada_matches
 from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
 from betstream.bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
 from betstream.Streamer.compare_times import seconds_until_event
+from track_game import TrackGame
 from bet_placer import PlaceBet
 from models import Bovadabet, Edgebet
 from kelly import Kelly
@@ -123,7 +125,6 @@ class BetStream(object):
 					self.edgebet = self.bovada_bet_for_edgebet[1]
 					self.bovadabet = self.bovada_bet_for_edgebet[0]
 					
-
 					self.place_the_bet = self.place_bet_on_bovada(
 						bovada_bet=self.bovadabet,
 						edgebet=self.edgebet
@@ -146,18 +147,24 @@ class BetStream(object):
 
 
 	def find_bovada_bet_for(self, edgebet):
-		for bet in Bovadabet.objects.filter(is_placed=False).order_by("-date_added"):
-			if bet.homeOrAwayMatch(edgebet):
-				print "home or away teams match!"
+		available_sports = settings.SPORTS_TO_BET_ON
+		if sport not in available_sports:
+			print "skipping this bet based on sport"
+			return None
+		
+		home_team = " ".join(edgebet.home_team.split(",")).lower()
+		away_team = " ".join(edgebet.away_team.split(",")).lower()
+		for bet in Bovadabet.objects.filter(is_placed=False, home_team__icontains=edgebet.home_team, away_team__icontains=edgebet.away_team).order_by("-date_added"):
 			try:
 				equal = bet == edgebet
 			except Exception, e:
 				print e
 				equal = False
 			finally:
-				if equal:
+				if equal == True:
 					return [bet, edgebet]
-				pass
+					
+				
 
 	
 		print "could not find outcome"
@@ -169,6 +176,7 @@ class BetStream(object):
 
 
 	def place_bet_on_bovada(self, bovada_bet, edgebet):
+		self.placed_bets = [x.outcome_id for x in Bovadabet.objects.filter(is_placed=True)] + [i.edgebet_id for i in Edgebet.objects.filter(is_placed=True)]
 		if self.place_bet == False:
 			return False
 
@@ -208,7 +216,7 @@ class BetStream(object):
 		print "probability of you winning {}".format(p)
 		print "probability of you losing {}".format(q)
 		print "percent_of_bankroll_to_bet {}".format(percent_of_bankroll_to_bet)
-		stake = "%.f" %(Kelly.get_stake(percent_of_bankroll_to_bet, 1000) * 100)
+		stake = "%.f" %(Kelly.get_stake(percent_of_bankroll_to_bet, api.balance) * 100)
 		print "stake {}".format(stake)
 		data = placebet.build_bet_selection(outcomeId=bovada_bet.outcome_id, priceId=bovada_bet.price_id, stake=stake)
 		if stake >= 1 and data:
@@ -233,7 +241,6 @@ class BetStream(object):
 		""" setup our logging and bind our pusher client to
 		our on_edge function. Also fetch the bovada matches. Then create a new
 		special object based on it's properties. """
-		
 		self.pusher = pusherclient.Pusher(self.key)
 		self.log = logging.getLogger()
 		self.log.addHandler(logging.FileHandler("betstream.log"))
@@ -241,17 +248,18 @@ class BetStream(object):
 		self.remove_stale_matches()
 		#fetches bovada matches from bovada
 		self.bovada_matches = get_bovada_matches()
-		self.placed_bets = [x.outcome_id for x in Bovadabet.objects.filter(is_placed=True)] + [i.edgebet_id for i in Edgebet.objects.filter(is_placed=True)]
 		self.save_matches()
+		self.pusher.connect()
 		self.checker = time.time()
-		self.pusher.connect() 
 		
 		while True:
 			if time.time() - self.checker >= 1000:
+				self.pusher.disconnect()
+				print "disconnected"
 				break
 			
 			self.log.log(logging.INFO, sys.stdout)
-			#time.sleep(01)
+			time.sleep(01)
 
 
 
