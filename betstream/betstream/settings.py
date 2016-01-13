@@ -81,6 +81,10 @@ WSGI_APPLICATION = 'betstream.wsgi.application'
 SPORTS_TO_BET_ON = (
     "basketball",
     "soccer",
+    "tennis",
+    "football",
+    "rugby",
+    "baseball"
     )
 
 # Database
