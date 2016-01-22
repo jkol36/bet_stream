@@ -18,7 +18,7 @@ import time #import the library module
 import json #import the library module
 import logging
 import itertools
-from django.conf import settings
+from django.db.models import Q
 from get_bovada_matches import get_bovada_matches
 from betstream.bovadaAPI.bovadaAPI.api import BovadaApi
 from betstream.bovadaAPI.bovadaAPI.headers import get_bovada_headers_generic
@@ -69,9 +69,8 @@ class BetStream(object):
 
 	def remove_stale_matches(self):
 		print "removing stale matches"
-		for match in Bovadabet.objects.filter(is_placed=False):
-			match.delete()
-		return True
+		return Bovadabet.objects.filter(is_placed=False).delete()
+		
 	def on_edge(self, data):
 		self.edgebets = json.loads(data)
 		self.new_edgebets = [edgebet for edgebet in self.edgebets["new_edges"]]
@@ -144,24 +143,80 @@ class BetStream(object):
 
 			
 
+	def is_equal(self, bovadabet, edgebet):
+		try:
+			equal = bovadabet == edgebet
+		except:
+			equal = False
+		finally:
+			if equal:
+				return equal
 
 
 	def find_bovada_bet_for(self, edgebet):
-		home_team = " ".join(edgebet.home_team.split(",")).lower()
-		away_team = " ".join(edgebet.away_team.split(",")).lower()
-		for bet in Bovadabet.objects.filter(is_placed=False, home_team__icontains=edgebet.home_team, away_team__icontains=edgebet.away_team).order_by("-date_added"):
+		#if the sport is tennis the players last name is actually at index 0
+		#and the players first name is actually at index 1
+		#We need to assign variables to those and we also need to parse out the
+		#comma and join both the first name and last name seperated by just one space
+		if edgebet.sport == "tennis":
 			try:
-				equal = bet == edgebet
-			except Exception, e:
-				print e
-				equal = False
-			finally:
-				if equal == True:
-					return [bet, edgebet]
-					
-				
+				home_team_first_name = edgebet.home_team.split(",")[1]
+			except IndexError, e:
+				print "index error raised", e
+			try:
+				home_team_last_name = edgebet.home_team.split(",")[0]
+			except IndexError, e:
+				print "index error raised", e
+			try:
+				possible_matches = Bovadabet.objects.filter(
+					Q(home_team__icontains=home_team_first_name) |
+					Q(home_team__icontains=home_team_last_name) |
+					Q(away_team__icontains=away_team_first_name) | 
+					Q(away_team__icontains=away_team_last_name) |
+					Q(home_team__istartswith=home_team_first_name) |
+					Q(home_team__istartswith=home_team_last_name) |
+					Q(home_team__iendswith=home_team_first_name) | 
+					Q(home_team__iendswith=home_team_last_name) |
+					Q(away_team__iendswith=away_team_last_name) |
+					Q(away_team__iendswith=away_team_first_name)
 
-	
+				)
+			except Exception, e:
+				print "something went wrong querying the database for tennis matches", e
+			else:
+				for match in possible_matches:
+					if self.is_equal(match, edgebet):
+						return [match, edgebet]
+		else:
+			home_team = "".join(x for x in edgebet.home_team.split(",")).lower()
+			away_team = "".join(x for x in edgebet.away_team.split(",")).lower()
+			try:
+				possible_matches = Bovadabet.objects.filter(
+					Q(home_team__icontains=home_team) |
+					Q(home_team__istartswith=home_team) |
+					Q(home_team__iendswith=home_team) |
+					Q(away_team__icontains=away_team) |
+					Q(away_team__istartswith=away_team) |
+					Q(away_team__iendswith=away_team) 
+				)
+			except Exception, e:
+				print "something went wrong querying the database for {} matches".format(edgebet.sport)
+				print e
+			else:
+				for match in possible_matches:
+					if self.is_equal(match, edgebet):
+						return [match, edgebet]
+				print possible_matches
+			# for bet in Bovadabet.objects.filter(is_placed=False, home_team__icontains=edgebet.home_team, away_team__icontains=edgebet.away_team).order_by("-date_added"):
+			# 	try:
+			# 		equal = bet == edgebet
+			# 	except Exception, e:
+			# 		print e
+			# 		equal = False
+			# 	finally:
+			# 		if equal == True:
+			# 			return [bet, edgebet]
+					
 		print "could not find outcome"
 		return None
 			
@@ -194,7 +249,6 @@ class BetStream(object):
 		):
 			print "this game isn't for another {} seconds".format(seconds_until_event(edgebet.start_time))
 			return False
-
 
 		api = BovadaApi()
 		cookies = api.auth["cookies"]
@@ -238,6 +292,11 @@ class BetStream(object):
 		special object based on it's properties. """
 		self.pusher = pusherclient.Pusher(self.key)
 		self.log = logging.getLogger()
+		#remove the log file so it doesnt get to big.
+		try:
+			os.remove("betstream.log")
+		except:
+			pass
 		self.log.addHandler(logging.FileHandler("betstream.log"))
 		self.pusher.connection.bind('pusher:connection_established', self.connection_handler)
 		self.remove_stale_matches()
@@ -248,7 +307,7 @@ class BetStream(object):
 		self.checker = time.time()
 		
 		while True:
-			if time.time() - self.checker >= 1000:
+			if time.time() - self.checker >= 10000:
 				self.pusher.disconnect()
 				print "disconnected"
 				break
