@@ -251,7 +251,7 @@ class BetStream(object):
 			return False
 
 		api = BovadaApi()
-		cookies = api.auth["cookies"]
+		cookies = api.auth()["cookies"]
 		headers = get_bovada_headers_generic()
 		placebet = PlaceBet()
 		p = Kelly.get_p(odds=bovada_bet.odds) + (edgebet.edge - 1)

@@ -19,12 +19,16 @@ from django.contrib import admin
 from betstream.App.views import Home
 from rest_framework.routers import DefaultRouter
 from betstream.App.views import EdgebetViewSet
+from betstream.App.views import BovadaProfileViewSet
+from betstream.App.views import ProfileViewSet
 
 router = DefaultRouter()
-router.register(r"edgebets", EdgebetViewSet)
+router.register(r"Edgebets", EdgebetViewSet)
+router.register(r"BovadaProfiles", BovadaProfileViewSet)
+router.register(r"Profiles", ProfileViewSet)
 
 urlpatterns = [
-	url(r'^', include(router.urls)),
+	url(r'^api/', include(router.urls)),
     url(r'^admin/', admin.site.urls),
     url(r'^$', Home),
 ]

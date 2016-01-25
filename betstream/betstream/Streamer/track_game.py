@@ -216,9 +216,9 @@ class TrackGame(Thread):
 
     def track_total_points_under(self, ws, message):
         self.score_to_beat = self.edgebet.handicap
-        print "need to beat {}".format(self.score_to_beat)
+        print "need to stay under {}".format(self.score_to_beat)
         self.current_score = self.get_game_info(message)["home"] + self.get_game_info(message)["away"]
-        if self.current_score > self.score_to_beat:
+        if self.current_score >= self.score_to_beat:
             print "you lost this bet. The score is home: {}, away: {}".format(self.get_game_info(message)["home"], self.get_game_info(message)["away"])
             self.edgebet.win = False
             self.edgebet.save()
@@ -226,9 +226,22 @@ class TrackGame(Thread):
         elif self.get_game_info(message)["game_state"] == "IN_PROGRESS" and self.current_score < self.score_to_beat:
             print "you're currently winning this bet"
 
+        elif self.get_game_info(message)["game_state"] == "IN_PROGRESS" and self.current_score >= self.score_to_beat:
+            print "you're currently winning this bet"
+
 
         elif self.get_game_info(message)["game_state"] == "GAME_END" and self.current_score < self.score_to_beat:
             print "you won this bet"
+            self.edgebet.win = False
+            self.edgebet.save()
+            self.on_game_end(ws)
+
+        elif self.get_game_info(message)["game_state"] == "GAME_END" and self.current_score == self.score_to_beat:
+            print "you tied this bet"
+            self.on_game_end(ws)
+
+        elif self.get_game_info(message)["game_state"] == "GAME_END" and self.current_score >= self.score_to_beat:
+            print "you lost this bet"
             self.edgebet.win = False
             self.edgebet.save()
             self.on_game_end(ws)

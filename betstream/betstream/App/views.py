@@ -35,6 +35,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
 	class Meta:
 		model  = Profile
 
+class BovadaProfileViewSet(viewsets.ModelViewSet):
+	queryset = BovadaProfile.objects.all()
+	serializer_class = BovadaProfileSerializer
+
+	class Meta:
+		model = BovadaProfile
+
 
 
 
