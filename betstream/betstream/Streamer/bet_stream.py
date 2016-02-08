@@ -313,8 +313,14 @@ class BetStream(object):
 				edgebet.save()
 				self.placed_bets.append(bovada_bet.outcome_id)
 				self.placed_bets.append(edgebet.edgebet_id)
-				#message = tweet_results.build_tweet(edgebet, stake)
-				#tweet_results.tweet(message)
+				try:
+					message = tweet_results.build_tweet(edgebet, stake)
+				except:
+					pass
+				try:
+					tweet_results.tweet(message)
+				except:
+					pass
 				return True
 			return False
 		else:
