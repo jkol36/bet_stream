@@ -14,6 +14,7 @@
 import os
 import sys
 import pusherclient #import the library module
+import tweepy #import the library module
 import time #import the library module
 import json #import the library module
 import logging
@@ -26,6 +27,7 @@ from betstream.Streamer.compare_times import seconds_until_event
 from track_game import TrackGame
 from bet_placer import PlaceBet
 from models import Bovadabet, Edgebet
+import tweet_results
 from kelly import Kelly
 
 
@@ -33,10 +35,14 @@ from kelly import Kelly
 
 class BetStream(object):
 	
-	def __init__(self, min_edge=1.01, place_bet=True):
+	def __init__(self, 
+		min_edge=1.01, 
+		place_bet=True,
+		tweet_on_placed_bet=True):
 		self.key = "c11ef000e51c34bac2fc"
 		self.min_edge = min_edge
 		self.place_bet = place_bet
+		self.tweet = tweet_on_placed_bet
 		
 	
 
@@ -163,10 +169,38 @@ class BetStream(object):
 				home_team_first_name = edgebet.home_team.split(",")[1]
 			except IndexError, e:
 				print "index error raised", e
+				try:
+					home_team_first_name = edgebet.home_team.split("&")[0]
+				except IndexError,e:
+					print "index error raised", e
+
 			try:
 				home_team_last_name = edgebet.home_team.split(",")[0]
 			except IndexError, e:
 				print "index error raised", e
+				try:
+					home_team_last_name = edgebet.home_team.split("&")[1]
+				except IndexError, e:
+					print "index error raised", e
+
+			try:
+				away_team_first_name = edgebet.away_team.split(",")[1]
+			except IndexError, e:
+				print "index error raised", e
+				try:
+					away_team_first_name = edgebet.away_team.split("&")[0]
+				except IndexError, e:
+					print "index error raised", e
+
+
+			try:
+				away_team_last_name = edgebet.away_team.split(",")[0]
+			except IndexError, e:
+				print "index error raised", e
+				try:
+					away_team_last_name = edgebet.away_team.split("&")[1]
+				except IndexError, e:
+					print "index error raised"
 			try:
 				possible_matches = Bovadabet.objects.filter(
 					Q(home_team__icontains=home_team_first_name) |
@@ -251,7 +285,7 @@ class BetStream(object):
 			return False
 
 		api = BovadaApi()
-		cookies = api.auth["cookies"]
+		cookies = api.auth()["cookies"]
 		headers = get_bovada_headers_generic()
 		placebet = PlaceBet()
 		p = Kelly.get_p(odds=bovada_bet.odds) + (edgebet.edge - 1)
@@ -262,11 +296,7 @@ class BetStream(object):
 			p,
 			q
 		)
-		print "probability of you winning {}".format(p)
-		print "probability of you losing {}".format(q)
-		print "percent_of_bankroll_to_bet {}".format(percent_of_bankroll_to_bet)
 		stake = "%.f" %(Kelly.get_stake(percent_of_bankroll_to_bet, api.balance) * 100)
-		print "stake {}".format(stake)
 		data = placebet.build_bet_selection(outcomeId=bovada_bet.outcome_id, priceId=bovada_bet.price_id, stake=stake)
 		if stake >= 1 and data:
 			cha_ching = placebet.place(data=json.dumps(data), cookies=cookies, headers=headers)
@@ -280,6 +310,8 @@ class BetStream(object):
 				edgebet.save()
 				self.placed_bets.append(bovada_bet.outcome_id)
 				self.placed_bets.append(edgebet.edgebet_id)
+				#message = tweet_results.build_tweet(edgebet, stake)
+				#tweet_results.tweet(message)
 				return True
 			return False
 		else:
@@ -314,6 +346,16 @@ class BetStream(object):
 			
 			self.log.log(logging.INFO, sys.stdout)
 			time.sleep(01)
+
+
+	
+
+
+
+			
+
+
+
 
 
 

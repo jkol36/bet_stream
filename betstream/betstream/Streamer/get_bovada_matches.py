@@ -9,7 +9,7 @@ import requests
 def get_bovada_matches():
 	print "hang tight, fetching the latest matches from bovada. This can take a while."
 	b = BovadaApi()
-	b.auth
+	b.auth()
 	soccer_matches = b.soccer_matches
 	basketball_matches = b.basketball_matches
 	tennis_matches = b.tennis_matches
