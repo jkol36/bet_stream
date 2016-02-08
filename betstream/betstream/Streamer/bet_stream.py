@@ -27,7 +27,10 @@ from betstream.Streamer.compare_times import seconds_until_event
 from track_game import TrackGame
 from bet_placer import PlaceBet
 from models import Bovadabet, Edgebet
-import tweet_results
+try:
+	import tweet_results
+except:
+	pass
 from kelly import Kelly
 
 
