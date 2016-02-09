@@ -4,11 +4,11 @@ bitly_auth_token = "6ee1cb452e51feec5c0f584cd78ee6762398adc8"
 bitly = Connection(api_key=bitly_auth_token, access_token=bitly_auth_token)
 
 api_objs = []
-#a, b, c, d = "HQDJz4CqmJGxhe6wikPxUFo7l", "rOeYaSGenfLx42o1VfTt5PkcMKfQJSx89riIMue1eGRIROcHa6", "258627515-MhwSWj0RXwMUD4PYT5xbCWkKzkc9V6SlmSyhjBiY", "yvlHSyo1CG22eFbAafrJUCHOMVergfKkJziwfrKtmZhjA"
-#auth = tweepy.OAuthHandler(a, b)
-#auth.set_access_token(c, d)
-#api = tweepy.API(auth)
-#api_objs.append(api)
+a, b, c, d = "HQDJz4CqmJGxhe6wikPxUFo7l", "rOeYaSGenfLx42o1VfTt5PkcMKfQJSx89riIMue1eGRIROcHa6", "258627515-MhwSWj0RXwMUD4PYT5xbCWkKzkc9V6SlmSyhjBiY", "yvlHSyo1CG22eFbAafrJUCHOMVergfKkJziwfrKtmZhjA"
+auth = tweepy.OAuthHandler(a, b)
+auth.set_access_token(c, d)
+api = tweepy.API(auth)
+api_objs.append(api)
 a, b, c, d = "mVP71pUya8skr8rHgdcV7g6hi", "uL8hm2t6hi1HYsV32KVxJDERyqtAVbH3f7G0gPzrSzH1Losizs", "4875953380-fp7deRPXTtlTKsbrWbpYxeAbh9Sj2QZoAOuNx0K", "TWyghgmisSYLDw7tVDYPTptgtGwy6CyZcU9Gx0jSOs5zI"
 auth = tweepy.OAuthHandler(a, b)
 auth.set_access_token(c, d)
