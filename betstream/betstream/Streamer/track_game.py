@@ -28,24 +28,34 @@ class TrackGame(Thread):
         self.edgebet = edgebet
         self.current_score = edgebet.home_team + ":"+" " + str(0), edgebet.away_team+":"+ " " + str(0)
         self.reconnect_interval = reconnect_interval
+        self.last_message = None
         Thread.__init__(self)
         self.daemon = daemon
 
 
-
-    def get_game_info(self, message):
+  
+    def get_game_info(self, ws, message, *args):
+        print message
         self.x = json.dumps(message.split("|")[1])
         self.message = json.loads(self.x)
         try:
             self.data = json.loads(json.loads(json.dumps(self.message)))
         except Exception, e:
-            data = None
+            self.data = None
         finally:
             if self.data:
-                #print data.keys()
-                self.points_home = self.data["latestScore"]["home"]
-                self.points_away = self.data["latestScore"]["visitor"]
-                self.game_state = self.data["gameStatus"]
+                try:
+                    self.points_home = self.data["latestScore"]["home"]
+                except KeyError, e:
+                    self.points_home = 0
+                try:
+                    self.points_away = self.data["latestScore"]["visitor"]
+                except KeyError, e:
+                    self.points_away = 0
+                try:
+                    self.game_state = self.data["gameStatus"]
+                except KeyError, e:
+                    self.game_state = None
                 self.current_score = self.edgebet.home_team + ":"+" " + str(self.points_home), self.edgebet.away_team+":"+ " " + str(self.points_away)
                 return {"home": self.points_home, "away": self.points_away, "game_state": self.game_state}
                 
@@ -54,20 +64,20 @@ class TrackGame(Thread):
 
 
     
-    def track_point_spread_home_to_win(self, ws, message):
+    def track_point_spread_home_to_win(self, ws, message, *args, **kwargs):
         print "tracking point spread home to win"
         self.starting_points = self.edgebet.handicap
         print "home team started with {}".format(self.starting_points)
-        self.home_point_count = self.get_game_info(message)["home"]
-        self.away_point_count = self.get_game_info(message)["away"]
+        self.home_point_count = self.get_game_info(ws, message)["home"]
+        self.away_point_count = self.get_game_info(ws, message)["away"]
         if (
             self.home_point_count + self.starting_points > self.away_point_count and
-            self.get_game_info(message)["game_state"] == "IN_PROGRESS"
+            self.get_game_info(ws, message)["game_state"] == "IN_PROGRESS"
         ):
             print "you are currently winning this bet"
         elif (
             self.home_point_count + self.starting_points > self.away_point_count and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             print "you won this bet"
             self.edgebet.win = True
@@ -76,7 +86,7 @@ class TrackGame(Thread):
 
         elif (
             self.home_point_count + self.starting_points < self.away_point_count and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             print "you lost this bet"
             self.edgebet.win = False
@@ -87,21 +97,21 @@ class TrackGame(Thread):
             print "You are currently losing this bet"
         
 
-    def track_point_spread_away_to_win(self, ws, message):
+    def track_point_spread_away_to_win(self, ws, message, *args, **kwargs):
         print "trackingpoint spread away to win"
         self.starting_points = self.edgebet.handicap
         print "away team started with {}".format(self.starting_points)
-        self.home_point_count = self.get_game_info(message)["home"]
-        self.away_point_count = self.get_game_info(message)["away"]
+        self.home_point_count = self.get_game_info(ws, message)["home"]
+        self.away_point_count = self.get_game_info(ws, message)["away"]
         if (
             self.away_point_count + self.starting_points > self.home_point_count and
-            self.get_game_info(message)["game_state"] == "IN_PROGRESS"
+            self.get_game_info(ws, message)["game_state"] == "IN_PROGRESS"
         ):
             print "you are currently winning this bet"
 
         elif (
             self.away_point_count + self.starting_points > self.home_point_count and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             print "you won this bet"
             self.edgebet.win = True
@@ -110,7 +120,7 @@ class TrackGame(Thread):
 
         elif (
             self.away_point_count + self.starting_points < self.home_point_count and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             print "you lost this bet"
             self.edgebet.win = False
@@ -123,18 +133,18 @@ class TrackGame(Thread):
             
 
 
-    def track_moneyline_home_to_win(self, ws, message):
+    def track_moneyline_home_to_win(self, ws, message, *args, **kwargs):
         print "tracking home to win straight up"
-        self.home_point_count = self.get_game_info(message)["home"]
-        self.away_point_count = self.get_game_info(message)["away"]
+        self.home_point_count = self.get_game_info(ws, message)["home"]
+        self.away_point_count = self.get_game_info(ws, message)["away"]
         if (
             self.home_point_count > self.away_point_count and
-            self.get_game_info(message)["game_state"] == "IN_PROGRESS"
+            self.get_game_info(ws, message)["game_state"] == "IN_PROGRESS"
         ):
             print "you are currently winning this bet"
         elif (
             self.home_point_count > self.away_point_count and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             print "you won this bet"
             self.edgebet.win = True
@@ -143,14 +153,14 @@ class TrackGame(Thread):
 
         elif (
             self.home_point_count < self.away_point_count and
-            self.get_game_info(message)["game_state"] == "IN_PROGRESS"
+            self.get_game_info(ws, message)["game_state"] == "IN_PROGRESS"
         ):
             print "you are currently losing this bet"
 
 
         elif (
             self.home_point_count < self.away_point_count and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             print "you lost this bet"
             self.edgebet.win = False
@@ -159,18 +169,18 @@ class TrackGame(Thread):
            
 
 
-    def track_moneyline_away_to_win(self, ws, message):
+    def track_moneyline_away_to_win(self, ws, message, *args, **kwargs):
         print "tracking away to win straight up"
-        self.home_point_count = self.get_game_info(message)["home"]
-        self.away_point_count = self.get_game_info(message)["away"]
+        self.home_point_count = self.get_game_info(ws, message)["home"]
+        self.away_point_count = self.get_game_info(ws, message)["away"]
         if (
             self.home_point_count < self.away_point_count and
-            self.get_game_info(message)["game_state"] == "IN_PROGRESS"
+            self.get_game_info(ws, message)["game_state"] == "IN_PROGRESS"
         ):
             print "you are currently winning this bet"
         elif (
             self.home_point_count < self.away_point_count and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             print "you won this bet"
             self.edgebet.win = True
@@ -179,14 +189,14 @@ class TrackGame(Thread):
 
         elif (
             self.home_point_count > self.away_point_count and
-            self.get_game_info(message)["game_state"] == "IN_PROGRESS"
+            self.get_game_info(ws, message)["game_state"] == "IN_PROGRESS"
         ):
             print "you are currently losing this bet"
 
 
         elif (
             self.home_point_count > self.away_point_count and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             print "you lost this bet"
             self.edgebet.win = False
@@ -198,17 +208,17 @@ class TrackGame(Thread):
         print "tracking total points over {}".format(self.edgebet.handicap)
         self.score_to_beat = self.edgebet.handicap
         print "need to beat {}".format(self.score_to_beat)
-        self.current_score = self.get_game_info(message)["home"] + self.get_game_info(message)["away"]
-        if self.current_score > self.score_to_beat:
-            print "you won this bet. The score is home: {}, away: {}".format(self.get_game_info(message)["home"], self.get_game_info(message)["away"])
+        self.current_score = self.get_game_info(ws, message)["home"] + self.get_game_info(ws, message)["away"]
+        if float(self.current_score) > float(self.score_to_beat):
+            print "you won this bet. The score is home: {}, away: {}".format(self.get_game_info(ws, message)["home"], self.get_game_info(ws, message)["away"])
             if self.edgebet.win != True:
                 self.edgebet.win = True
                 self.edgebet.save()
                 self.on_game_end(ws)
-        elif self.get_game_info(message)["game_state"] == "IN_PROGRESS" and self.current_score < self.score_to_beat:
+        elif self.get_game_info(ws, message)["game_state"] == "IN_PROGRESS" and self.current_score < self.score_to_beat:
             print "you're currently losing this bet"
 
-        elif self.get_game_info(message)["game_state"] == "GAME_END" and self.current_score < self.score_to_beat:
+        elif self.get_game_info(ws, message)["game_state"] == "GAME_END" and self.current_score < self.score_to_beat:
             print "you lost this bet"
             self.edgebet.win = False
             self.edgebet.save()
@@ -217,17 +227,17 @@ class TrackGame(Thread):
     def track_total_points_under(self, ws, message):
         self.score_to_beat = self.edgebet.handicap
         print "need to beat {}".format(self.score_to_beat)
-        self.current_score = self.get_game_info(message)["home"] + self.get_game_info(message)["away"]
+        self.current_score = self.get_game_info(ws, message)["home"] + self.get_game_info(ws, message)["away"]
         if self.current_score > self.score_to_beat:
-            print "you lost this bet. The score is home: {}, away: {}".format(self.get_game_info(message)["home"], self.get_game_info(message)["away"])
+            print "you lost this bet. The score is home: {}, away: {}".format(self.get_game_info(ws, message)["home"], self.get_game_info(ws, message)["away"])
             self.edgebet.win = False
             self.edgebet.save()
-            self.on_game_end()
-        elif self.get_game_info(message)["game_state"] == "IN_PROGRESS" and self.current_score < self.score_to_beat:
+            self.on_game_end(ws)
+        elif self.get_game_info(ws, message)["game_state"] == "IN_PROGRESS" and self.current_score < self.score_to_beat:
             print "you're currently winning this bet"
 
 
-        elif self.get_game_info(message)["game_state"] == "GAME_END" and self.current_score < self.score_to_beat:
+        elif self.get_game_info(ws, message)["game_state"] == "GAME_END" and self.current_score < self.score_to_beat:
             print "you won this bet"
             self.edgebet.win = False
             self.edgebet.save()
@@ -235,15 +245,15 @@ class TrackGame(Thread):
 
     def track_moneyline_draw(self, ws, message):
         if (
-            self.get_game_info(message)["home"] != self.get_game_info(message)["away"] and
-            self.get_game_info(message)["game_state"] == "GAME_END"
+            self.get_game_info(ws, message)["home"] != self.get_game_info(ws, message)["away"] and
+            self.get_game_info(ws, message)["game_state"] == "GAME_END"
         ):
             self.edgebet.win = False
             self.edgebet.save()
             self.on_game_end(ws) 
 
         elif (
-            self.get_game_info(message)["home"] == self.get_game_info(message)["away"]
+            self.get_game_info(ws, message)["home"] == self.get_game_info(ws, message)["away"]
         ):
             self.edgebet.win = True
             self.edgebet.save()
@@ -270,14 +280,16 @@ class TrackGame(Thread):
 
 
     def run(self):
-        #websocket.enableTrace(True)
+        websocket.enableTrace(True)
         
         if (
-            self.edgebet.outcome_type == "O"
+            self.edgebet.outcome_type == "O" and 
+            self.edgebet.odds_type == 4
         ): 
             self.callback_function = self.track_total_points_over
         elif (
-            self.edgebet.outcome_type == "U"
+            self.edgebet.outcome_type == "U" and
+            self.edgebet.odds_type == 4
         ):
             self.callback_function = self.track_total_points_under
         elif (
